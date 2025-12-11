@@ -38,8 +38,13 @@ class AuthClientService extends AuthAbstract
     }
 
 
-    public function providerRegister($validated)
+    public function providerRegister($request)
     {
-        
+        //$data = $request->validated();
+        $user = User::create($request->except([
+            "commercial_register","branches_count","brand_name","_method","password_confirmation"
+        ]));
+        $user->access_token = $user->createToken('snctumToken', $abilities ?? [], now()->addHours(1))->plainTextToken;
+        return $this->handelMobileOTP($user);
     }
 }
