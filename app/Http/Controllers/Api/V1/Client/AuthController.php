@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api\V1\Client;
 
+use App\Enum\UserTypeEnum;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Enum\ProviderApprovalStatusEnum;
 use App\Services\Auth\AuthClientService;
 use App\Http\Requests\Api\Auth\SendOTPRequest;
 use App\Http\Resources\Api\Auth\ClientResource;
@@ -51,9 +53,18 @@ class AuthController extends Controller
      */
     public function login(LoginClientRequest $request): JsonResponse
     {
+        $user = $this->authClientService->login($request);
+
+          if($user->type == UserTypeEnum::PROVIDER && $user->providerDetails->status != ProviderApprovalStatusEnum::ACCEPTED)
+        {
+            return $this->respondWithErrors( __('Provider Not approved Yet') , 416, [
+                'code' => [__('Provider Not approved Yet')]
+            ]); 
+
+        }
         return $this->respondWithModelData(
             new ClientResource(
-                $this->authClientService->login($request)
+                $user
             )
         );
     }
@@ -67,22 +78,32 @@ class AuthController extends Controller
      * @header Api-Version v1
      * @header Accept-Language ar
      */
-    public function register(RegisterClientRequest $request): JsonResponse
+    
+    public function registerClient(RegisterClientRequest $request): JsonResponse
     {
+        $client = $this->authClientService->register($request);
+
+        if ($request->has("image")) {
+            uploadImage('client-image', $request->file('image'), $client);
+        }
+
         return $this->respondWithModelData(
             new ClientResource(
-                $this->authClientService->register($request)
+                $client
             )
         );
     }
 
     public function providerRegister(ProviderRegisterRequest $request)
     {
+        $provider = $this->authClientService->providerRegister($request);
+
+        if ($request->has("image")) {
+            uploadImage('provider-image', $request->file('image'), $provider);
+        }
+
         return $this->respondWithModelData(
-            new ClientResource(
-                $this->authClientService->providerRegister($request)
-            )
-        );
+            new ClientResource($provider));
     }
     /**
      * Send OTP To Mobile Number.
@@ -112,6 +133,7 @@ class AuthController extends Controller
      * @header Api-Version v1
      * @header Accept-Language ar
      */
+    
     public function resendOTP(Request $request): JsonResponse
     {
         $returned = $this->authClientService->resendOTP($request);

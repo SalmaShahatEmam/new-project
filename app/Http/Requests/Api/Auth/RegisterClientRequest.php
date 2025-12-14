@@ -2,8 +2,9 @@
 
 namespace App\Http\Requests\Api\Auth;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Enum\UserTypeEnum;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * @bodyParam name string required The user personal name.Example: 0564776688
@@ -24,6 +25,12 @@ class RegisterClientRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            "type" => UserTypeEnum::CLIENT,
+        ]);
+    }
     /**
      * Get the validation rules that apply to the request.
      *
@@ -35,6 +42,11 @@ class RegisterClientRequest extends FormRequest
             "name" => ["required","string","max:190"],
             "mobile" => ["required","unique:users,mobile"],
             "email" => ["sometimes","unique:users,email"],
+            "gender" => "required|in:male,female",
+            "city_id" => ["required","exists:cities,id"],
+            "nationality" => ["required","string","max:190"],
+            "nationalId" => ["required","string","max:20"],
+            "date_of_birth" => ["required","date"],
             "password" => ["required","confirmed",Password::default()],
         ];
     }

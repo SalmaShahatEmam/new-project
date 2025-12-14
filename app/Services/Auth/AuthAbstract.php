@@ -38,7 +38,6 @@ abstract class AuthAbstract
     {
         $request->authenticate();
         $user = $request->user();
-
         # TODO handel Cloud messaging
         $accessToken = $user->createToken('snctumToken', $abilities ?? [], now()->addMonths(3))->plainTextToken;
 
@@ -90,7 +89,9 @@ abstract class AuthAbstract
             $user->update([
                 'email_verified_at' => now(),
             ]);
-            return $this->respondWithSuccess(__("Successfull Operation"));
+
+            //TODO : send request to admin to approve and notification to admin 
+            return $this->respondWithSuccess(__("otp-sucess"));
         }
         return $this->setStatusCode(422)->respondWithError(__("Code Expired"),
             errors: ["code" => [__("Code Expired")]]);
@@ -132,6 +133,11 @@ abstract class AuthAbstract
             return $this->setStatusCode(422)->respondWithError(__("Current Password Wrong"));
         }
     }
+
+  /*   public function providerRegister($data)
+    {
+        $data["type"
+    } */
 
     /**
      * reset password.

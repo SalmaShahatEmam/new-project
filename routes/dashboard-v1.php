@@ -2,7 +2,8 @@
 
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\Dashboard\{PermissionController, RoleController, AuthController, CityController, SettingController, UserController};
+
+use App\Http\Controllers\Api\V1\Dashboard\{PermissionController, RoleController, AuthController, CityController, ProviderRequestController, SettingController, UserController};
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -47,6 +48,9 @@ Route::middleware(["auth:api"])->group(function () {
     # Users
     Route::apiResource('users', UserController::class);
 
+    # Provider Requests 
+    Route::get("provider-requests" , [ProviderRequestController::class , "index"]);
+    Route::post("updateStatus/{id}" , [ProviderRequestController::class , "updateStatus"]);
     # Chat
     include __DIR__ . '/chat.php';
 

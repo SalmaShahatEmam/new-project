@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Auth;
 
+use App\Enum\UserTypeEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProviderRegisterRequest extends FormRequest
@@ -13,6 +14,14 @@ class ProviderRegisterRequest extends FormRequest
     {
         return true;
     }
+
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            "type" => UserTypeEnum::PROVIDER,
+        ]);
+    }
+
 
     /**
      * Get the validation rules that apply to the request.
@@ -43,8 +52,8 @@ class ProviderRegisterRequest extends FormRequest
     
             'mobile' => [
                 'required',
-                'digits:10',
-                'regex:/^05[0-9]{8}$/', // يبدأ بـ 05
+                'digits:9',
+                'regex:/^5[0-9]{8}$/', // يبدأ بـ 05
                 'unique:users,mobile',
             ],
 
@@ -57,21 +66,18 @@ class ProviderRegisterRequest extends FormRequest
             ],
 
       
-            'national_id' => [
+            'nationalId' => [
                 'required',
                 'digits:10',
                 'unique:users,nationalId',
             ],
 
-         /*    // صورة العلامة التجارية (اللوجو)
-            'logo' => [
+            'image' => [
                 'required',
                 'image',
                 'mimes:jpg,jpeg,png',
-                'max:5120', // 5 MB
+                'max:5120', 
             ],
- */
-       
             'password' => [
                 'required',
                 'string',

@@ -208,6 +208,7 @@ class FormRequest extends Request implements ValidatesWhenResolved
         return true;
     }
 
+    
     /**
      * Handle a failed authorization attempt.
      *

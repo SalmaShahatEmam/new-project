@@ -28,7 +28,6 @@ Route::prefix("auth")->group(function () {
         Route::delete('delete-account', [AuthController::class, 'deleteAccount']);
     });
     Route::post('login', [AuthController::class, 'login']); #
-    Route::post('register', [AuthController::class, 'register']); #
     Route::post('forget-password', [AuthController::class, 'forgetPassword']);
     Route::post('send-otp', [AuthController::class, 'sendOTP']);
 
@@ -36,6 +35,11 @@ Route::prefix("auth")->group(function () {
            Route::post('register', [AuthController::class, 'providerRegister']); #
 
     });
+
+    Route::prefix("client")->group(function(){
+            Route::post('register', [AuthController::class, 'registerClient']); #
+    });
+   
     
 });
 

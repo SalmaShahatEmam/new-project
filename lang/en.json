@@ -1,5 +1,5 @@
 {
     "currency":"SAR",
     "otp_message" :"Your OTP :code Please Donot Share it , Avaliable for 3 minutes",
-    "":""
+    "otp-sucess":"Your account has been created and your information has been sent to the administration for review. You will receive a text message if it is approved."
 }
