@@ -59,6 +59,13 @@ abstract class AuthAbstract
         return $this->handelOTPMethod($user);
     }
 
+
+    public function updateProfile($request)
+    {
+        $user = $request->user();
+        $user->update($request->only(['email', 'city_id']));
+        return $user;
+    }
     public function resendOTP(Request $request)
     {
         $user = $request->user();

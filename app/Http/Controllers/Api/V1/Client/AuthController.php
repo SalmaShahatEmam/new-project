@@ -23,6 +23,7 @@ use App\Http\Resources\Api\V1\Client\ProviderResource;
 use App\Http\Requests\Api\Auth\ProviderRegisterRequest;
 use App\Http\Resources\Api\V1\Client\UserClientResource;
 use App\Http\Requests\Api\Auth\ValidateMobileorEmailRequest;
+use App\Http\Requests\Api\V1\Client\EditProfile;
 
 /**
  * @group App Client
@@ -68,6 +69,22 @@ class AuthController extends Controller
                 $user
             )
         );
+    }
+
+    public function updateProfile(EditProfile $request): JsonResponse
+    {
+        $client = $this->authClientService->updateProfile($request);
+
+        if ($request->has("image")) {
+            uploadImage('client-image', $request->file('image'), $client);
+        }
+
+        return $this->respondWithModelData(
+            new UserClientResource(
+                $client
+            )
+        );
+
     }
 
 
