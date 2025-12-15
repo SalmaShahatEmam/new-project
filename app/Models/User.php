@@ -127,7 +127,7 @@ class User extends Authenticatable implements HasMedia
      protected function image(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->getFirstMediaUrl('client-image') ?: '',
+        get: fn() => $this->getFirstMediaUrl('client-image') ?: asset('storage/9/download.jpg'),
         );
     }
 
