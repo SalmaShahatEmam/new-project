@@ -27,17 +27,19 @@ Route::prefix("auth")->group(function () {
         Route::post('reset-password', [AuthController::class, 'resetPassword']);
         Route::delete('delete-account', [AuthController::class, 'deleteAccount']);
     });
-    Route::post('login', [AuthController::class, 'login']); #
     Route::post('forget-password', [AuthController::class, 'forgetPassword']);
     Route::post('send-otp', [AuthController::class, 'sendOTP']);
 
     Route::prefix("provider")->group(function () {
            Route::post('register', [AuthController::class, 'providerRegister']); #
+            Route::post('login', [AuthController::class, 'providerLogin']); #
 
     });
 
     Route::prefix("client")->group(function(){
             Route::post('register', [AuthController::class, 'registerClient']); #
+            Route::post('login', [AuthController::class, 'clientLogin']); #
+
     });
    
     

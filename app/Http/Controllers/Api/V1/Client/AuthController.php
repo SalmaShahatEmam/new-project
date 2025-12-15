@@ -54,11 +54,22 @@ class AuthController extends Controller
      * @header Api-Version v1
      * @header Accept-Language ar
      */
-    public function login(LoginClientRequest $request): JsonResponse
+    public function clientLogin(LoginClientRequest $request): JsonResponse
     {
         $user = $this->authClientService->login($request);
+        return $this->respondWithModelData(
+            new UserClientResource(
+                $user
+            )
+        );
+    }
 
-          if($user->type == UserTypeEnum::PROVIDER && $user->providerDetails->status != ProviderApprovalStatusEnum::ACCEPTED)
+
+      public function providerLogin(LoginClientRequest $request): JsonResponse
+    {
+        $provider = $this->authClientService->login($request);
+
+        if( $provider->providerDetails->status != ProviderApprovalStatusEnum::ACCEPTED)
         {
             return $this->respondWithErrors( __('Provider Not approved Yet') , 416, [
                 'code' => [__('Provider Not approved Yet')]
@@ -66,10 +77,8 @@ class AuthController extends Controller
 
         }
         return $this->respondWithModelData(
-            new ClientResource(
-                $user
-            )
-        );
+              new ProviderResource($provider->load("providerDetails")));
+    
     }
 
     /**

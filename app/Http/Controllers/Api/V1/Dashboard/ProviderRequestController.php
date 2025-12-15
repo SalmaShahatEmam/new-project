@@ -10,7 +10,7 @@ use App\Enum\ProviderApprovalStatusEnum;
 
 class ProviderRequestController extends Controller
 {
-        use ApiResponseTrait;
+    use ApiResponseTrait;
 
     public function index()
     {
