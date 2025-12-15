@@ -15,7 +15,7 @@ use App\Http\Controllers\Api\V1\Client\AuthController;
 |
 */
 
-Route::get("cities/index",[GeneralController::class,"citiesIndex"]);
+Route::get("cities/all",[GeneralController::class,"citiesIndex"]);
 Route::prefix("auth")->group(function () {
     Route::middleware(["auth:api"])->group(function () {
         Route::post('resend-otp', [AuthController::class, 'resendOTP']); #

@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Enum\ProviderApprovalStatusEnum;
 use App\Services\Auth\AuthClientService;
+use App\Http\Resources\Api\Auth\UserResource;
 use App\Http\Requests\Api\Auth\SendOTPRequest;
 use App\Http\Resources\Api\Auth\ClientResource;
 use App\Http\Requests\Api\Auth\VerifyOTPRequest;
@@ -18,7 +19,9 @@ use App\Http\Requests\Api\Auth\ResetPasswordRequest;
 use App\Http\Requests\Api\Auth\ChangePasswordRequest;
 use App\Http\Requests\Api\Auth\ForgetPasswordRequest;
 use App\Http\Requests\Api\Auth\RegisterClientRequest;
+use App\Http\Resources\Api\V1\Client\ProviderResource;
 use App\Http\Requests\Api\Auth\ProviderRegisterRequest;
+use App\Http\Resources\Api\V1\Client\UserClientResource;
 use App\Http\Requests\Api\Auth\ValidateMobileorEmailRequest;
 
 /**
@@ -88,7 +91,7 @@ class AuthController extends Controller
         }
 
         return $this->respondWithModelData(
-            new ClientResource(
+            new UserClientResource(
                 $client
             )
         );
@@ -103,7 +106,7 @@ class AuthController extends Controller
         }
 
         return $this->respondWithModelData(
-            new ClientResource($provider));
+            new ProviderResource($provider->load("providerDetails")));
     }
     /**
      * Send OTP To Mobile Number.

@@ -41,6 +41,13 @@ class User extends Authenticatable implements HasMedia
     protected $hidden = [
         'password',
         'remember_token',
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "email_verified_at",
+        "sms",
+        "latest_o_t_p_token",
+        
     ];
 
     /**
