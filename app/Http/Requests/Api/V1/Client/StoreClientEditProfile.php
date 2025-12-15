@@ -24,7 +24,7 @@ class StoreClientEditProfile extends FormRequest
         return [
             "name" => ["required","string","min:2","max:100","regex:/^[\pL\pN ]+$/u"],
             "email" => ["required","email","unique:users,email,".$this->user()->id],
-            "nationalId" => ["required","digits:10","unique:users,national_id,".$this->user()->id],
+            "nationalId" => ["required","digits:10","unique:users,nationalId,".$this->user()->id],
         ];
     }
 }
