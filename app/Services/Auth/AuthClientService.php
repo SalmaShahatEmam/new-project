@@ -38,6 +38,12 @@ class AuthClientService extends AuthAbstract
         return $this->handelMobileOTP($user);
     }
 
+    public function storeUpdateProfile($request)
+    {
+        $user = $request->user();
+        $user->providerDetails->update($request->only(['commercial_register', 'branches_count', 'brand_name']));
+        return $user;
+    }
 
     public function providerRegister($request)
     {

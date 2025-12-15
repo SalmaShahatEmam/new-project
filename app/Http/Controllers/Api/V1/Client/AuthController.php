@@ -24,6 +24,8 @@ use App\Http\Requests\Api\Auth\ProviderRegisterRequest;
 use App\Http\Resources\Api\V1\Client\UserClientResource;
 use App\Http\Requests\Api\Auth\ValidateMobileorEmailRequest;
 use App\Http\Requests\Api\V1\Client\EditProfile;
+use App\Http\Requests\Api\V1\Client\StoreClientEditProfile;
+use App\Http\Requests\Api\V1\Client\StoreEditProfile;
 
 /**
  * @group App Client
@@ -71,7 +73,18 @@ class AuthController extends Controller
         );
     }
 
-    public function updateProfile(EditProfile $request): JsonResponse
+    public function storeClientUpdateProfile(StoreClientEditProfile $request): JsonResponse
+    {
+        $client = $this->authClientService->StoreClientUpdateProfile($request);
+        return $this->respondWithModelData(
+            new UserClientResource(
+                $client
+            )
+        );
+
+    }
+    
+    public function individualUpdateProfile(EditProfile $request): JsonResponse
     {
         $client = $this->authClientService->updateProfile($request);
 
@@ -135,6 +148,18 @@ class AuthController extends Controller
         );
     }
 
+    public function storeUpdateProfile(StoreEditProfile $request): JsonResponse
+    {
+        $provider = $this->authClientService->storeUpdateProfile($request);
+
+        if ($request->has("image")) {
+            uploadImage('provider-image', $request->file('image'), $provider);
+        }
+
+        return $this->respondWithModelData(
+            new ProviderResource($provider->load("providerDetails")));
+
+    }
     public function providerRegister(ProviderRegisterRequest $request)
     {
         $provider = $this->authClientService->providerRegister($request);

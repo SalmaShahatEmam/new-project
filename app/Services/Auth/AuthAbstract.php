@@ -52,6 +52,12 @@ abstract class AuthAbstract
         return $user;
     }
 
+    public function StoreClientUpdateProfile($request)
+    {
+        $user = $request->user();
+        $user->update($request->only(['name', 'email', 'nationalId']));
+        return $user;
+    }
     public function sendOTP(SendOTPRequest $request)
     {
         $user = $this->model::query()->whereMobile($request->mobile)->first();

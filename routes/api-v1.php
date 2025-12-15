@@ -63,7 +63,10 @@ Route::prefix("auth")->group(function () {
 Route::middleware(["auth:api"])->group(function () {
 
     #User data 
-    Route::post("update_profile", [AuthController::class,"updateProfile"]);
+    Route::post("individual/update-profile", [AuthController::class,"individualUpdateProfile"]);
+    Route::post("store/update-profile", [AuthController::class,"storeUpdateProfile"]);
+    Route::post("store/update-client-profile", [AuthController::class,"storeClientUpdateProfile"]);
+
     # Chat
     include __DIR__ . '/chat.php';
 });
