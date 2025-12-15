@@ -57,7 +57,7 @@ class AuthController extends Controller
     public function clientLogin(LoginClientRequest $request): JsonResponse
     {
         $user = $this->authClientService->login($request);
-        
+
         if( $user->type != UserTypeEnum::CLIENT)
         {
             return $this->errorUnauthorized(__('Unauthorized'));
@@ -71,7 +71,7 @@ class AuthController extends Controller
     }
 
 
-      public function providerLogin(LoginClientRequest $request): JsonResponse
+    public function providerLogin(LoginClientRequest $request): JsonResponse
     {
         $provider = $this->authClientService->login($request);
 

@@ -50,6 +50,9 @@ class User extends Authenticatable implements HasMedia
         
     ];
 
+    protected $appends = [
+        'avatar',"city_name" , "image"
+    ];
     /**
      * The attributes that should be cast.
      *
@@ -105,6 +108,10 @@ class User extends Authenticatable implements HasMedia
         return $this->morphMany(AuthenticatableOtp::class, 'authenticatable')->whereActive(true)->latest();
     }
 
+    public function city()
+    {
+        return $this->belongsTo(City::class, 'city_id', 'id');
+    }
     public function transactions()
     {
         return $this->morphMany(Transaction::class, 'transactionable');
@@ -121,6 +128,13 @@ class User extends Authenticatable implements HasMedia
     {
         return Attribute::make(
             get: fn() => $this->getFirstMediaUrl('image') ?: '',
+        );
+    }
+
+    public function cityName(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->city ? $this->city->name : null,
         );
     }
 

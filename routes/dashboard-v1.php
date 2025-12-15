@@ -50,7 +50,7 @@ Route::middleware(["auth:api"])->group(function () {
 
     # Provider Requests 
     Route::get("provider-requests" , [ProviderRequestController::class , "index"]);
-    Route::post("updateStatus/{id}" , [ProviderRequestController::class , "updateStatus"]);
+    Route::post("provider-requests/update-status/{id}" , [ProviderRequestController::class , "updateStatus"]);
     # Chat
     include __DIR__ . '/chat.php';
 

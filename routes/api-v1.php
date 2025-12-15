@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Api\V1\GeneralController;
 use App\Http\Controllers\Api\V1\Client\AuthController;
 
@@ -14,8 +15,19 @@ use App\Http\Controllers\Api\V1\Client\AuthController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+Route::controller(GeneralController::class)->group(function(){
+    Route::get("cities/all","citiesIndex");
 
-Route::get("cities/all",[GeneralController::class,"citiesIndex"]);
+//Route::get('terms-and-conditions', 'getTermsAndConditions');
+
+    #Static pages 
+    Route::prefix("statis-pages")->group(function(){
+            Route::get('terms-and-conditions', 'getTermsAndConditions');
+
+    });
+});
+
+
 Route::prefix("auth")->group(function () {
     Route::middleware(["auth:api"])->group(function () {
         Route::post('resend-otp', [AuthController::class, 'resendOTP']); #

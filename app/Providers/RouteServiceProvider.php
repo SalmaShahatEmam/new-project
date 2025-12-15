@@ -42,7 +42,7 @@ class RouteServiceProvider extends ServiceProvider
             ->group(base_path('routes/dashboard-v1.php'));
 
             Route::middleware($this->apiMiddlewares)
-                ->namespace($this->apiClientNamespace)
+                // ->namespace($this->apiClientNamespace)
                 ->prefix('client-api/v1')
                 ->group(base_path('routes/api-v1.php'));
 

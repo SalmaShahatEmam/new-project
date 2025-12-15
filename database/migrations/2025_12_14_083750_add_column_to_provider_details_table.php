@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::table('provider_details', function (Blueprint $table) {
             $table->String("status")->default(ProviderApprovalStatusEnum::REVIEW);
-            $table->String("rejection-reason")->nullable();
+            $table->String("rejection_reason")->nullable();
         });
     }
 
@@ -24,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('provider_details', function (Blueprint $table) {
-            $table->dropColumn(["status" , "rejection-reason"]);
+            $table->dropColumn(["status" , "rejection_reason"]);
         });
     } 
 };
