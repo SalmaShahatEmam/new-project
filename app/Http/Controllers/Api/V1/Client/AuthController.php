@@ -185,6 +185,10 @@ class AuthController extends Controller
         return $this->authClientService->verifyOTP($request);
     }
 
+    public function mobileVerifyOTP(VerifyOTPRequest $request): JsonResponse
+    {
+        return $this->authClientService->mobileVerifyOTP($request);
+    }
     /**
      * Client New Password.
      *

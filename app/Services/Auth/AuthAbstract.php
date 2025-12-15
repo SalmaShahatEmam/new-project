@@ -71,6 +71,32 @@ abstract class AuthAbstract
      *
      * @return JsonResponse
      */
+
+    public function mobileVerifyOTP(VerifyOTPRequest $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing('latestOTPToken');
+        if (is_null($user->latestOTPToken))
+            return $this->respondWithSuccess(__("Failed Operation"));
+
+        if ($request->code != $user->latestOTPToken->code) {
+            return $this->setStatusCode(422)->respondWithError(__("Code Not Matched"),
+                errors: ["code" => [__("Code Not Matched")]]);
+        }
+
+        if ($user->latestOTPToken?->isValid()) {
+            $user->latestOTPToken->update([
+                'active' => false,
+            ]);
+            tap($user)->update([
+                'mobile' => $user->mobile_change,
+                'mobile_change' => null,
+            ])->fresh();
+
+            return $this->respondWithSuccess(__("otp-sucess"));
+        }
+        return $this->setStatusCode(422)->respondWithError(__("Code Expired"),
+            errors: ["code" => [__("Code Expired")]]);
+    }
     public function verifyOTP(VerifyOTPRequest $request): JsonResponse
     {
         $user = $request->user()->loadMissing('latestOTPToken');
@@ -170,7 +196,7 @@ abstract class AuthAbstract
     {
         $user = $request->user();
         tap($user)->update([
-            'mobile' => $request->mobile,
+            'mobile_change' => $request->mobile,
         ])->fresh();
         $user->access_token = $request->bearerToken();
         return $this->handelOTPMethod($user);

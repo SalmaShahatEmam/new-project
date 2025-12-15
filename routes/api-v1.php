@@ -35,6 +35,8 @@ Route::prefix("auth")->group(function () {
         Route::post('logout', [AuthController::class, 'logout']); #
         Route::get('profile', [AuthController::class, 'profile']); #
         Route::post('change-mobile', [AuthController::class, 'changeMobile']); #
+        Route::post('mobile-verify-otp', [AuthController::class, 'mobileVerifyOTP']); #
+
         Route::post('chang-password', [AuthController::class, 'changePassword']); #
         Route::post('reset-password', [AuthController::class, 'resetPassword']);
         Route::delete('delete-account', [AuthController::class, 'deleteAccount']);
