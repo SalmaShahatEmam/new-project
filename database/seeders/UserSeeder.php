@@ -59,7 +59,7 @@ class UserSeeder extends Seeder
                 'mobile' => 123456789,
                 'password' => 123123123,
                 'is_active' => true,
-                'type' => UserTypeEnum::CLIENT
+                'type' => UserTypeEnum::INDIVIDUAL
             ]
         );
         $this->command->info('Client :');

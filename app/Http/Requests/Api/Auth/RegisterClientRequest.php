@@ -28,7 +28,7 @@ class RegisterClientRequest extends FormRequest
     protected function prepareForValidation()
     {
         $this->merge([
-            "type" => UserTypeEnum::CLIENT,
+            "type" => UserTypeEnum::INDIVIDUAL,
         ]);
     }
     /**

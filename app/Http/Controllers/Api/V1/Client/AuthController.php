@@ -58,7 +58,7 @@ class AuthController extends Controller
     {
         $user = $this->authClientService->login($request);
 
-        if( $user->type != UserTypeEnum::CLIENT)
+        if( $user->type != UserTypeEnum::INDIVIDUAL)
         {
             return $this->errorUnauthorized(__('Unauthorized'));
         }
@@ -75,7 +75,7 @@ class AuthController extends Controller
     {
         $provider = $this->authClientService->login($request);
 
-        if( $provider->type != UserTypeEnum::PROVIDER)
+        if( $provider->type != UserTypeEnum::STORE)
         {
             return $this->errorUnauthorized(__('Unauthorized'));
 

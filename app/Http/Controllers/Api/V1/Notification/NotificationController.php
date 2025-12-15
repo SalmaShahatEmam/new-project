@@ -112,7 +112,7 @@ class NotificationController extends Controller
     {
         $notifabelType = [$type];
         if ($type == 'all') {
-            $notifabelType = [UserTypeEnum::CLIENT];
+            $notifabelType = [UserTypeEnum::INDIVIDUAL];
         }
 
         $notifabels = $this->userRepository->search(

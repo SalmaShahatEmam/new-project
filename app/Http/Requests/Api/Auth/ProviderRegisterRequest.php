@@ -18,7 +18,7 @@ class ProviderRegisterRequest extends FormRequest
     protected function prepareForValidation()
     {
         $this->merge([
-            "type" => UserTypeEnum::PROVIDER,
+            "type" => UserTypeEnum::STORE,
         ]);
     }
 

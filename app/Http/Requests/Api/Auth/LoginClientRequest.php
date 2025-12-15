@@ -37,7 +37,7 @@ class LoginClientRequest extends FormRequest
     {
         return [
             'mobile' => ['required',
-                Rule::exists('users', 'mobile')->whereIn('type', [UserTypeEnum::CLIENT , UserTypeEnum::PROVIDER])],
+                Rule::exists('users', 'mobile')->whereIn('type', [UserTypeEnum::INDIVIDUAL , UserTypeEnum::STORE])],
             'password' => ['required', 'string', Password::default()],
         ];
     }

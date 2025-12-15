@@ -42,13 +42,13 @@ Route::prefix("auth")->group(function () {
     Route::post('forget-password', [AuthController::class, 'forgetPassword']);
     Route::post('send-otp', [AuthController::class, 'sendOTP']);
 
-    Route::prefix("provider")->group(function () {
+    Route::prefix("store")->group(function () {
            Route::post('register', [AuthController::class, 'providerRegister']); #
             Route::post('login', [AuthController::class, 'providerLogin']); #
 
     });
 
-    Route::prefix("client")->group(function(){
+    Route::prefix("individual")->group(function(){
             Route::post('register', [AuthController::class, 'registerClient']); #
             Route::post('login', [AuthController::class, 'clientLogin']); #
 
