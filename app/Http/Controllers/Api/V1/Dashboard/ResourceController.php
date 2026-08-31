@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Api\V1\Dashboard\ResourcePriceRequest;
 use App\Http\Requests\Api\V1\Dashboard\ResourceRequest;
+use App\Http\Resources\Api\V1\Dashboard\ResourcePriceResource;
 use App\Http\Resources\Api\V1\Dashboard\ResourceResource;
 use App\Models\Resource ;
 use App\Repositories\Contracts\ResourceContract;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Arr;
 
 class ResourceController extends BaseApiController
 {
@@ -74,5 +75,23 @@ class ResourceController extends BaseApiController
         return $this->respondWithSuccess(trans('messages.responses.deleted'));
     }
 
+
+    public function getPrices(Resource $Resource): JsonResponse
+    {
+        $prices = $Resource->resourcePrices()->get();
+        return $this->respondWithSuccess(__('Resource prices'), [
+            "resource_data" => new ResourceResource($Resource),
+            'prices_history' => ResourcePriceResource::collection($prices),
+        ]);
+    }
+
+
+    public function storePrices(ResourcePriceRequest $request, Resource $Resource): JsonResponse
+    {
+        $this->repository->storePrices($Resource, $request->all());
+        return $this->respondWithSuccess(__('Resource prices updated successfully'), [
+            "resource_data" => new ResourceResource($Resource),
+        ]);
+    }
 
 }

@@ -4,30 +4,34 @@ namespace App\Http\Requests\Api\V1\Dashboard;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ResourceRequest extends FormRequest
+class ResourcePriceRequest extends FormRequest
 {
-
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    
+
     protected function prepareForValidation()
     {
-        $this->merge([]);
+        $this->merge([
+            "effective_date" => now(),
+            "updated_by" => auth()->id(),
+        ]);
     }
 
     public function rules(): array
     {
         $rules = [
-            "name.en" => "required|string|max:255",
-            "name.ar" => "required|string|max:255",
-            "description.en" => "nullable|string|max:255",
-            "description.ar" => "nullable|string|max:255",
-            "category_id" => "required|exists:categories,id",
-            "unit_of_measure.en" => "required|string|max:255",
-            "unit_of_measure.ar" => "required|string|max:255",
-            "resource_code" => "required|string|max:255|unique:resources,resource_code," . $this->resource?->id,
+            "price" => "required|numeric|min:0",
+            'currency' => 'required|string',
+            "location_id" => "required|exists:locations,id",
+            "resource_id" => "required|exists:resources,id",
+       
         ];
         if($this->getMethod() == "POST")
             return $this->postRules($rules);

@@ -42,6 +42,9 @@ Route::middleware(["auth:api"])->group(function () {
 
     #Resource
     Route::apiResource('resources', ResourceController::class);
+    Route::get('resources/{resource}/prices', [ResourceController::class, 'getPrices']);
+    Route::post('resources/{resource}/prices', [ResourceController::class, 'storePrices']);
+
     # Categories
     Route::apiResource('categories', CategoryController::class);
     # Permission

@@ -11,11 +11,20 @@ class resourcePrice extends Model
 {
     use HasFactory, ModelTrait ;
 
-    protected $fillable = [];
+    protected $fillable = ['resource_id', 'location_id', 'price', 'updated_by' , 'currency', 'effective_date'];
 
     public function resource()
     {
         return $this->belongsTo(Resource::class);
     }
     
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
 }

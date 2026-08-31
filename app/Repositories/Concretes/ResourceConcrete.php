@@ -15,4 +15,10 @@ class ResourceConcrete extends BaseConcrete implements ResourceContract
     {
         parent::__construct($model);
     }
+
+
+    public function storePrices(Resource $Resource, array $data): void
+    {
+        $Resource->resourcePrices()->create($data);
+    }
 }
