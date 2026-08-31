@@ -59,12 +59,29 @@ class UserSeeder extends Seeder
                 'mobile' => 123456789,
                 'password' => 123123123,
                 'is_active' => true,
-                'type' => UserTypeEnum::INDIVIDUAL
+                'type' => UserTypeEnum::EMPLOYEE
             ]
         );
         $this->command->info('Client :');
         $this->command->warn($clientUser->mobile);
         $this->command->warn(123123);
         $this->command->line('------------------------------------------------------------------------------');
-    }
+    
+         # CostEstimator
+        $clientUser = User::firstOrCreate(
+            ['email' => 'CostEstimator@Estimator.com'],
+            [
+                'name' => 'CostEstimator',
+                'mobile' => 123456789,
+                'password' => 123123123,
+                'is_active' => true,
+                'type' => UserTypeEnum::CostEstimator
+            ]
+        );
+        $this->command->info('CostEstimator');
+        $this->command->warn($clientUser->mobile);
+        $this->command->warn(123123);
+        $this->command->line('------------------------------------------------------------------------------');
+   
+        }
 }

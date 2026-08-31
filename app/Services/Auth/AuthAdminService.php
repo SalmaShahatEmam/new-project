@@ -39,12 +39,13 @@ class AuthAdminService extends AuthAbstract
      *
      * @return JsonResponse
      */
-    public function forgetPassword(FormRequest $request, $abilities = null): JsonResponse
+    public function forgetPassword(FormRequest $request, $abilities = null)
     {
         $user = $this->model::whereEmail($request->email)->first();
-        tap($user)->update([
+         tap($user)->update([
             'email_verified_at' => NULL,
-        ])->fresh();
+            
+        ])->fresh(); 
         $user->access_token = is_null($user->currentAccessToken()) ? $user->createToken('snctumToken', $abilities ?? [],now()->addHours(1))->plainTextToken : $user->currentAccessToken();
         return $this->handelOTPMethod($user);
     }

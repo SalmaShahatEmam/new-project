@@ -22,5 +22,8 @@
     'posts' => 'posts',
     'ads' => 'ads',
     'cities' => 'cities',
+    'categories' => 'categories',
+    'locations' => 'locations',
+    'resources' => 'resources',
   ),
 );

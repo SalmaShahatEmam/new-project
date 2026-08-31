@@ -144,10 +144,13 @@ class AuthController extends Controller
      */
     public function forgetPassword(ForgetPasswordDashboardRequest $request): JsonResponse
     {
-        return $this->respondWithModelData(
-            new AdminResource(
+       
+ 
+        return $this->respondWithSuccess(
+            __('Password Reset Successfully'),
+            ["user" => new AdminResource(
                 $this->authAdminService->forgetPassword($request)
-            )
+            )]
         );
     }
 

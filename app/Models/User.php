@@ -51,7 +51,7 @@ class User extends Authenticatable implements HasMedia
     ];
 
     protected $appends = [
-        'avatar',"city_name" , "image"
+        'avatar',"city_name" , "image" , "qr"
     ];
     /**
      * The attributes that should be cast.
@@ -139,5 +139,11 @@ class User extends Authenticatable implements HasMedia
     }
 
 
+    public function Qr(): Attribute
+    {
+        return Attribute::make(function(){
+            return $this->getFirstMediaUrl('user_qr');
+        });
+    }
 
 }

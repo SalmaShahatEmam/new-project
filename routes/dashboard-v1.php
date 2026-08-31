@@ -1,9 +1,11 @@
 <?php
 
 
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Api\V1\Dashboard\{PermissionController, RoleController, AuthController, CityController, ProviderRequestController, SettingController, UserController};
+use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
+use App\Http\Controllers\Api\V1\Dashboard\LocationController;
+use App\Http\Controllers\Api\V1\Dashboard\ResourceController;
+use Illuminate\Support\Facades\Route;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -35,13 +37,17 @@ Route::middleware(["auth:api"])->group(function () {
     # Roles
     Route::apiResource('roles', RoleController::class);
 
+    #Locations 
+    Route::apiResource('locations', LocationController::class);
+
+    #Resource
+    Route::apiResource('resources', ResourceController::class);
+    # Categories
+    Route::apiResource('categories', CategoryController::class);
     # Permission
     Route::get('permissions', PermissionController::class);
 
-    # cities
-    Route::get('cities/toggle/{city}', [CityController::class , "toggleCityStatus"]);
-    Route::apiResource('cities', CityController::class);
-
+ 
     # Setting
     Route::apiResource('settings', SettingController::class);
 
@@ -49,8 +55,6 @@ Route::middleware(["auth:api"])->group(function () {
     Route::apiResource('users', UserController::class);
 
     # Provider Requests 
-    Route::get("provider-requests" , [ProviderRequestController::class , "index"]);
-    Route::post("provider-requests/update-status/{id}" , [ProviderRequestController::class , "updateStatus"]);
     # Chat
     include __DIR__ . '/chat.php';
 

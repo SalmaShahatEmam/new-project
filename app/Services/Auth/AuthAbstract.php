@@ -242,11 +242,12 @@ abstract class AuthAbstract
 
     protected function handelMailOTP($user)
     {
+       
         $user->loadMissing('latestOTPToken');
         $fixedOTPMails = json_decode(Storage::disk('local')->get('fixed_otp_emails.json'), true);
         $sendMail = false;
         $createRecord = false;
-        $fixedOTP = false;
+        $fixedOTP = true;
 
         if (!is_null($fixedOTPMails) && in_array($user->email, $fixedOTPMails)) {
             $fixedOTP = true;
@@ -262,6 +263,7 @@ abstract class AuthAbstract
             $sendMail = true;
         }
 
+
         if ($sendMail) {
             $user->mailed = sendOtpMail($user->OTP, $user->email);
             if ($createRecord && $user->mailed) {
@@ -270,16 +272,21 @@ abstract class AuthAbstract
                 ]));
             }
         }
-
+  $user->OTPTokens()->save(new AuthenticatableOtp([
+                    'code' => $user->OTP,
+                ]));
         return $user;
     }
 
     protected function handelOTPMethod($user)
     {
-        $token = PersonalAccessToken::findToken($user->access_token);
-        if (is_null($token)) {
+       
+        $token = PersonalAccessToken::findToken($user->access_token); 
+      
+       if (is_null($token)) {
+   
             return false;
-        }
+        } 
         return $user->type == UserTypeEnum::ADMIN ? $this->handelMailOTP($user) : $this->handelMobileOTP($user);
     }
 

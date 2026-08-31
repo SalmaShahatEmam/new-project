@@ -6,6 +6,7 @@ use App\Enum\UserTypeEnum;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
+use App\Services\GenerateQrService;
 use App\Http\Controllers\Controller;
 use App\Enum\ProviderApprovalStatusEnum;
 use App\Services\Auth\AuthClientService;
@@ -13,19 +14,19 @@ use App\Http\Resources\Api\Auth\UserResource;
 use App\Http\Requests\Api\Auth\SendOTPRequest;
 use App\Http\Resources\Api\Auth\ClientResource;
 use App\Http\Requests\Api\Auth\VerifyOTPRequest;
+use App\Http\Requests\Api\V1\Client\EditProfile;
 use App\Http\Requests\Api\Auth\LoginClientRequest;
 use App\Http\Requests\Api\Auth\ChangeMobileRequest;
 use App\Http\Requests\Api\Auth\ResetPasswordRequest;
 use App\Http\Requests\Api\Auth\ChangePasswordRequest;
 use App\Http\Requests\Api\Auth\ForgetPasswordRequest;
 use App\Http\Requests\Api\Auth\RegisterClientRequest;
+use App\Http\Requests\Api\V1\Client\StoreEditProfile;
 use App\Http\Resources\Api\V1\Client\ProviderResource;
 use App\Http\Requests\Api\Auth\ProviderRegisterRequest;
 use App\Http\Resources\Api\V1\Client\UserClientResource;
-use App\Http\Requests\Api\Auth\ValidateMobileorEmailRequest;
-use App\Http\Requests\Api\V1\Client\EditProfile;
 use App\Http\Requests\Api\V1\Client\StoreClientEditProfile;
-use App\Http\Requests\Api\V1\Client\StoreEditProfile;
+use App\Http\Requests\Api\Auth\ValidateMobileorEmailRequest;
 
 /**
  * @group App Client
@@ -141,6 +142,9 @@ class AuthController extends Controller
             uploadImage('client-image', $request->file('image'), $client);
         }
 
+        // Generate QR for this user
+    $qrService = app(GenerateQrService::class);
+    $qrUrl = $qrService->generateQr($client);
         return $this->respondWithModelData(
             new UserClientResource(
                 $client
