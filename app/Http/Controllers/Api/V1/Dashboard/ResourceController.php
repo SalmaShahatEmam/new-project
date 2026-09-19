@@ -10,6 +10,7 @@ use App\Http\Resources\Api\V1\Dashboard\ResourceResource;
 use App\Models\Resource ;
 use App\Repositories\Contracts\ResourceContract;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class ResourceController extends BaseApiController
 {
@@ -72,7 +73,11 @@ class ResourceController extends BaseApiController
 
     public function destroy(Resource $Resource): JsonResponse
     {
-        $this->repository->remove($Resource);
+        DB::transaction(function () use ($Resource): void {
+            $Resource->resourcePrices()->delete();
+            $this->repository->remove($Resource);
+        });
+
         return $this->respondWithSuccess(trans('messages.responses.deleted'));
     }
 

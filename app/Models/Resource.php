@@ -7,11 +7,12 @@ use App\Traits\ModelTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Translatable\HasTranslations;
 
 class Resource extends Model
 {
-    use HasFactory, ModelTrait , HasTranslations;
+    use HasFactory, ModelTrait, HasTranslations, SoftDeletes;
 
     protected $fillable = ["name" , "description" , "unit_of_measure" , "category_id" , "resource_code" , 'unit_id'];
 

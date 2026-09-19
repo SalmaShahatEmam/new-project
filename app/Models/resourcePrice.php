@@ -9,10 +9,11 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class resourcePrice extends Model
 {
-    use HasFactory, ModelTrait ;
+    use HasFactory, ModelTrait, SoftDeletes;
 
     protected $fillable = ['resource_id', 'location_id', 'price', 'updated_by' , 'currency', 'effective_date' , "tax_value" , "supplier_id"];
 
