@@ -75,4 +75,13 @@ class LocationController extends BaseApiController
     }
 
 
+    public function toggleActive(Location $location): JsonResponse
+    {
+        $location->is_active = !$location->is_active;
+        $location->save();  
+
+        return $this->respondWithSuccess(__('Location updated successfully'), [
+            'Location' => (new LocationResource($location)),
+        ]);
+    }
 }

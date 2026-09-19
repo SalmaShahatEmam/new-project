@@ -2,18 +2,23 @@
 
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
+use App\Enum\UserTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Auth\ChangePasswordRequest;
 use App\Http\Requests\Api\Auth\ForgetPasswordDashboardRequest;
 use App\Http\Requests\Api\Auth\LoginDashboardRequest;
+use App\Http\Requests\Api\Auth\RegisterAdminRequest;
 use App\Http\Requests\Api\Auth\ResetPasswordRequest;
 use App\Http\Requests\Api\Auth\SendOTPRequest;
 use App\Http\Requests\Api\Auth\VerifyOTPRequest;
 use App\Http\Resources\Api\Auth\AdminResource;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\Auth\AuthAdminService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 /**
  * @group Dashboard Admin
@@ -52,6 +57,27 @@ class AuthController extends Controller
             )
         );
     }
+
+   public function register(RegisterAdminRequest $request): JsonResponse
+{
+    $attributes = $request->validated();
+
+    $role_id = Arr::pull($attributes, 'role_id');
+
+    $attributes['password'] = bcrypt($attributes['password']);
+    $attributes['type'] = UserTypeEnum::ADMIN;
+    $attributes["status"] = "PENDING";
+
+    $role = Role::findOrFail($role_id);
+
+    $model = User::create($attributes);
+
+    $model->assignRole($role);
+
+    return $this->respondWithSuccess(
+        __('account created successfully')
+    );
+}
 
     /**
      * Send OTP To Mobile Number.

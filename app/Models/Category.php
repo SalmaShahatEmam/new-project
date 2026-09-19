@@ -9,12 +9,20 @@ use Spatie\Translatable\HasTranslations;
 
 class Category extends Model
 {
-    use HasFactory, ModelTrait , HasTranslations;
+    use HasFactory, HasTranslations , ModelTrait;
 
-  
- protected $casts = [
+    protected $casts = [
         'name' => 'array',
-    ];    protected $fillable = ["name" , "parent_id" ];
+    ];
 
-    # Relations
+    protected $fillable = ['name', 'parent_id'];
+
+    // Relations
+
+    protected $translatable = ['name'];
+
+    public function parent()
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
 }

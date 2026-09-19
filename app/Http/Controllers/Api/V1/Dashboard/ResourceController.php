@@ -69,6 +69,7 @@ class ResourceController extends BaseApiController
      *
      * @return JsonResponse
      */
+
     public function destroy(Resource $Resource): JsonResponse
     {
         $this->repository->remove($Resource);
@@ -88,8 +89,19 @@ class ResourceController extends BaseApiController
 
     public function storePrices(ResourcePriceRequest $request, Resource $Resource): JsonResponse
     {
-        $this->repository->storePrices($Resource, $request->all());
-        return $this->respondWithSuccess(__('Resource prices updated successfully'), [
+        $price = $this->repository->storePrices($Resource, $request->all());
+        $price->load('updatedBy', 'location' , 'supplier')->refresh();
+        return $this->respondWithSuccess(__('Resource prices added successfully'), [
+            "resource_data" => new ResourceResource($Resource),
+            'prices_history' => ResourcePriceResource::make($price),
+        ]);
+    }
+
+    public function toggleActive(Resource $Resource): JsonResponse
+    {
+        $Resource->active = !$Resource->active;
+        $Resource->save();
+        return $this->respondWithSuccess(__('Resource status updated successfully'), [
             "resource_data" => new ResourceResource($Resource),
         ]);
     }

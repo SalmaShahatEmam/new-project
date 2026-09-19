@@ -2,11 +2,12 @@
 
 namespace App\Repositories\Concretes;
 
-use App\Models\User;
 use App\Enum\UserTypeEnum;
-use Illuminate\Support\Arr;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Role;
+use App\Models\User;
 use App\Repositories\Contracts\UserContract;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 
 class UserConcrete extends BaseConcrete implements UserContract
 {
@@ -25,10 +26,11 @@ class UserConcrete extends BaseConcrete implements UserContract
             $role_id = Arr::pull($attributes, 'role_id');
             $attributes['password'] = bcrypt($attributes['password']);
             $attributes['type'] = $type;
+            $role = Role::findOrFail($role_id);
 
             $filtered = $this->cleanUpAttributes($attributes);
             $model = $this->query->create($filtered);
-            $model->assignRole($role_id);
+            $model->assignRole($role);
 
             $this->propertyLogActivity(
                 $model,

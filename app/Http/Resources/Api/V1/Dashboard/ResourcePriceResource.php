@@ -22,13 +22,19 @@ class ResourcePriceResource extends JsonResource
             "location_id" => $this->location_id,
             "updated_by" => $this->updated_by,
             "location_name" => $this->location->name,
+            "effective_date" => $this->effective_date,
+            "tax_value" => $this->tax_value,
+            "price_after_tax" => $this->price_after_tax,
+            "supplier_id" => $this->supplier_id,
+            "supplier_name" => $this->supplier?->name,
+            "supplier_map_link" => $this->supplier?->map_link,
             
             "updated_by" => $this->whenLoaded('updatedBy', function () {
                 return [
                     'id' => $this->updatedBy->id,
                     'name' => $this->updatedBy->name,
                 ];
-            }),
+            }), 
             'created_at' => $this->created_at,
         ];
     }

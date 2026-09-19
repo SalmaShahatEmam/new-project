@@ -28,7 +28,7 @@ class UserController extends BaseApiController
      */
     public function store(UserRequest $request): JsonResponse
     {
-        $User = $this->repository->create($request->validated());
+        $User = $this->repository->create($request->all());
         return $this->respondWithSuccess(__('User added successfully'), [
             'User' => new UserResource($User),
         ]);

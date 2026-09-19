@@ -4,35 +4,26 @@ namespace App\Http\Requests\Api\V1\Dashboard;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ResourcePriceRequest extends FormRequest
+class SupplierRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+
     public function authorize(): bool
     {
         return true;
     }
 
-    
-
     protected function prepareForValidation()
     {
-        $this->merge([
-            "effective_date" => now(),
-            "updated_by" => auth()->id(),
-        ]);
+        $this->merge([]);
     }
 
     public function rules(): array
     {
         $rules = [
-            "price" => "required|numeric|min:0",
-            'currency' => 'required|string',
-            "location_id" => "required|exists:locations,id",
-            "resource_id" => "required|exists:resources,id",
-            "supplier_id" => "nullable|exists:suppliers,id",
-            "tax_value"    => "required"       
+            "name" => "required|array",
+            "contact" => "required|string|max:255",
+            "map_link" => "nullable|string|max:255",
+            
         ];
         if($this->getMethod() == "POST")
             return $this->postRules($rules);

@@ -14,7 +14,18 @@ class UserRequest extends FormRequest
 
     protected function prepareForValidation()
     {
-        $this->merge([]);
+        
+        $this->merge([
+            "is_active" => 1,
+            'password' => 123456,
+           'status' => auth()->user()->type === 'admin'
+    ? 'ACTIVE'
+    : 'PENDING',
+        ]);
+
+
+      
+           
     }
 
     public function rules(): array
@@ -37,9 +48,7 @@ class UserRequest extends FormRequest
         return [
             'name'          => 'required|string|max:255',
             'email'         => 'required|email|unique:users,email',
-            'mobile'        => 'required|phone:eg',
-            'password'      => 'required|confirmed|min:8',
-            'is_active'     => 'nullable|boolean',
+            'mobile'        => 'required|unique:users,mobile',
             'role_id'       => 'required|exists:roles,id',
         ];
     }
@@ -48,9 +57,7 @@ class UserRequest extends FormRequest
         return [
             'name'          => 'required|string|max:255',
             'email'         => 'required|email|unique:users,email,' . $this->route('user')->id,
-            'mobile'        => 'required|phone:eg',
-            'password'      => 'nullable|confirmed|min:8',
-            'is_active'     => 'nullable|boolean',
+            'mobile'        => 'required|unique:users,mobile,' . $this->route('user')->id,
             'role_id'       => 'required|exists:roles,id',
         ];
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Unit;
 use App\Traits\ModelTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,7 @@ class Resource extends Model
 {
     use HasFactory, ModelTrait , HasTranslations;
 
-    protected $fillable = ["name" , "description" , "unit_of_measure" , "category_id" , "resource_code"];
+    protected $fillable = ["name" , "description" , "unit_of_measure" , "category_id" , "resource_code" , 'unit_id'];
 
     protected $casts = [
            'name' => 'array',
@@ -21,6 +22,7 @@ class Resource extends Model
     ];
 
     # Relations
+    protected $with = ['category', 'unit' , "resourcePrices"];
     protected $filters = ["name" , "description" , "unit_of_measure" , "category_id" , "resource_code"];
     protected $translatable = ['name', 'description' , 'unit_of_measure'];
 
@@ -64,4 +66,12 @@ class Resource extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    public function unit() 
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+
+
 }
