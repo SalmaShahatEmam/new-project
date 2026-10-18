@@ -7,6 +7,7 @@
     'delete' => 'delete',
     'show' => 'show',
     'activate' => 'activate',
+    'add' => 'add',
     'users' => 'users',
     'roles' => 'roles',
     'permissions' => 'permissions',
@@ -28,5 +29,6 @@
     'projects' => 'projects',
     'units' => 'units',
     'suppliers' => 'suppliers',
+    'sites' => 'sites',
   ),
 );

@@ -26,6 +26,7 @@ class ForgetPasswordDashboardRequest extends FormRequest
      */
     public function rules()
     {
+    
         return [
             'email' => ['required', "exists:users,email,deleted_at,NULL"],
         ];

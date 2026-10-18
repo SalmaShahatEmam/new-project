@@ -14,7 +14,6 @@ class ProviderRequestController extends Controller
 
     public function index()
     {
-
         $users = User::whereHas("providerDetails", function($q){
             $q->where("status", ProviderApprovalStatusEnum::REVIEW);
         })->with("providerDetails")->get();

@@ -7,6 +7,7 @@
     'delete' => 'حذف',
     'show' => 'عرض',
     'activate' => 'تفعيل',
+    'add' => 'إضافة',
     'users' => 'المستخدمين',
     'roles' => 'الأدوار',
     'permissions' => 'الصلاحيات',
@@ -28,5 +29,6 @@
     'projects' => 'projects',
     'units' => 'units',
     'suppliers' => 'suppliers',
+    'sites' => 'sites',
   ),
 );

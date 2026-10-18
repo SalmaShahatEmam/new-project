@@ -13,21 +13,18 @@ class LocationSeeder extends Seeder
      */
     public function run(): void
     {
-        $locations=[
-               ['code' => 'QSM', "name" =>[ 'en' => 'Qassim', 'ar' => 'القصيم']],
-        ['code' => 'NJR', "name" =>[ 'en' => 'Najran', 'ar' => 'نجران']],
-        ['code' => 'JZN', "name" =>[ 'en' => 'Jazan', 'ar' => 'جازان']],
-        ['code' => 'BHA', "name" =>[ 'en' => 'Al-Baha', 'ar' => 'الباحة']]
+        $locations = [
+            ['code' => 'QSM', 'name' => ['en' => 'Qassim', 'ar' => 'القصيم']],
+            ['code' => 'NJR', 'name' => ['en' => 'Najran', 'ar' => 'نجران']],
+            ['code' => 'JZN', 'name' => ['en' => 'Jazan', 'ar' => 'جازان']],
+            ['code' => 'BHA', 'name' => ['en' => 'Al-Baha', 'ar' => 'الباحة']],
         ];
 
-    foreach ($locations as $location) {
-        Location::create([
-            'code' => $location['code'],
-            'name' => [
-                'en' => $location['en'],
-                'ar' => $location['ar'],
-            ],
-        ]);
-    }
+        foreach ($locations as $location) {
+            Location::updateOrCreate(
+                ['code' => $location['code']],
+                ['name' => $location['name']]
+            );
+        }
     }
 }

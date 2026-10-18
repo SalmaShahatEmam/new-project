@@ -28,9 +28,13 @@ class UserController extends BaseApiController
      */
     public function store(UserRequest $request): JsonResponse
     {
-        $User = $this->repository->create($request->all());
+        $data = $request->all();
+        $data['type'] = UserTypeEnum::EMPLOYEE;
+    
+        $User = $this->repository->create($data , UserTypeEnum::EMPLOYEE);
         return $this->respondWithSuccess(__('User added successfully'), [
             'User' => new UserResource($User),
+            "password" => $request->get('password')
         ]);
     }
 
@@ -54,8 +58,9 @@ class UserController extends BaseApiController
      * @param User $User
      * @return JsonResponse
      */
-    public function update(UserRequest $request, User $User): JsonResponse
+    public function update(UserRequest $request,  $User_id): JsonResponse
     {
+        $User = User::findOrFail($User_id);
         $User = $this->repository->update($User, $request->validated());
         return $this->respondWithSuccess(__('User updated successfully'), [
             'User' => (new UserResource($User)),
@@ -76,4 +81,27 @@ class UserController extends BaseApiController
     }
 
 
+    public function changeStatus(User $admin , $status): JsonResponse
+    {
+        if (!in_array($status, ['ACTIVE', 'INACTIVE'])) {
+            return $this->respondWithError(__('Invalid status value'), 400);
+        }
+        $admin->update(['status' => $status]);
+
+        return $this->respondWithSuccess(__('Admin status updated successfully'), [
+            'Admin' => new UserResource($admin),
+        ]);
+    }
+
+
+    public function getUsersByRole($role): JsonResponse
+    {
+        $users = User::whereHas('roles', function ($query) use ($role) {
+            $query->where('slug', $role);
+        })->get();
+
+        return $this->respondWithSuccess(__('Users retrieved successfully'), [
+            'users' => UserResource::collection($users),
+        ]);
+    }
 }

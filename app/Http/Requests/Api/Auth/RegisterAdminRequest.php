@@ -40,7 +40,7 @@ class RegisterAdminRequest extends FormRequest
     {
         return [
             "name" => ["required","string","max:190"],
-            "mobile" => ["required","unique:users,mobile"],
+            //"mobile" => ["required","unique:users,mobile"],
             "email" => ["sometimes","unique:users,email"],
             "password" => ["required","confirmed",Password::default()],
             "role_id" => ["required","exists:roles,id"],

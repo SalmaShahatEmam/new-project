@@ -16,7 +16,7 @@ class ProjectRequest extends FormRequest
     {
         $this->merge([
             "user_id" => auth()->id(),
-            "status" => $this->get('status', 'pending'),
+            //"status" => $this->get('status', 'pending'),
             "end_date" =>$this->dead_line
         ]);
     }
@@ -27,7 +27,12 @@ class ProjectRequest extends FormRequest
             "name" => "required|string|max:255",
             "description" => "nullable|string",
             "deadline" => "nullable|date",
-            
+
+                "Structural_id" => "nullable|integer|exists:users,id",
+                "Architectural_id" => "nullable|integer|exists:users,id",
+                "Electrical_id" => "nullable|integer|exists:users,id",
+                "Mechanical_id" => "nullable|integer|exists:users,id",
+
         ];
         if($this->getMethod() == "POST")
             return $this->postRules($rules);

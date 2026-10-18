@@ -17,7 +17,14 @@ class DatabaseSeeder extends Seeder
         $this->call([
             SettingSeeder::class,
             PermissionSeeder::class,
+            SitesAdminPermissionSeeder::class,
+            EstimationEngineerPermissionSeeder::class,
+            PurchaseEngineerPermissionSeeder::class,
+            SiteEngineerPermissionSeeder::class,
+            LocationSeeder::class,
             UserSeeder::class,
+            SiteSeeder::class,
+            SiteReportSeeder::class,
         ]);
         Schema::enableForeignKeyConstraints();
     }

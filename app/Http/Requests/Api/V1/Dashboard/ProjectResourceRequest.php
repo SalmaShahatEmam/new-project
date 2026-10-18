@@ -22,9 +22,13 @@ class ProjectResourceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "resource_id" => "required|exists:resources,id",
-            "quantity" => "required|numeric|min:1",
-            "location_id" => "required|exists:locations,id",
+            "resources" => "required|array|min:1",
+            "resources.*.resource_id" => "required|exists:resources,id",
+            "resources.*.quantity" => "required|numeric|min:1",
+            "resources.*.location_id" => "required|exists:locations,id",
+            "section_name" => "nullable|string|max:255",
+            "engineer_id" => "nullable|integer|exists:users,id",
+            "resources.*.note" => "nullable|string|max:1000",
         ];
     }
 }
