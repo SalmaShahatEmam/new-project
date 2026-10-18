@@ -51,6 +51,8 @@ class AuthController extends Controller
      */
     public function login(LoginDashboardRequest $request): JsonResponse
     {
+
+        
         return $this->respondWithModelData(
             new AdminResource(
                 $this->authAdminService->login($request)
@@ -64,8 +66,8 @@ class AuthController extends Controller
 
     $role_id = Arr::pull($attributes, 'role_id');
 
-    $attributes['password'] = bcrypt($attributes['password']);
-    $attributes['type'] = UserTypeEnum::ADMIN;
+    $attributes['password'] = $attributes['password'];
+    $attributes['type'] = UserTypeEnum::EMPLOYEE;
     $attributes["status"] = "PENDING";
 
     $role = Role::findOrFail($role_id);
@@ -74,8 +76,10 @@ class AuthController extends Controller
 
     $model->assignRole($role);
 
+    $model->refresh();
     return $this->respondWithSuccess(
-        __('account created successfully')
+        __('account created successfully') ,[
+        "user" => new AdminResource($model)]
     );
 }
 
@@ -128,7 +132,9 @@ class AuthController extends Controller
      */
     public function verifyOTP(VerifyOTPRequest $request): JsonResponse
     {
-        return $this->authAdminService->verifyOTP($request);
+       return $this->authAdminService->verifyOTP($request);
+
+      
     }
 
     /**
@@ -171,9 +177,8 @@ class AuthController extends Controller
     public function forgetPassword(ForgetPasswordDashboardRequest $request): JsonResponse
     {
        
- 
         return $this->respondWithSuccess(
-            __('Password Reset Successfully'),
+            __('OTP sent Successfully'),
             ["user" => new AdminResource(
                 $this->authAdminService->forgetPassword($request)
             )]

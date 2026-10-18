@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\Dashboard\ResourceRequest;
 use App\Http\Resources\Api\V1\Dashboard\ResourcePriceResource;
 use App\Http\Resources\Api\V1\Dashboard\ResourceResource;
 use App\Models\Resource ;
+use App\Models\resourcePrice;
 use App\Repositories\Contracts\ResourceContract;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,14 @@ class ResourceController extends BaseApiController
      */
     public function store(ResourceRequest $request): JsonResponse
     {
-        $Resource = $this->repository->create($request->validated());
+        do {
+            $resourceCode = 'R-' . random_int(1000, 9999);
+        } while (Resource::where('resource_code', $resourceCode)->exists());
+
+        $data = $request->validated();
+        $data['resource_code'] = $resourceCode;
+
+        $Resource = $this->repository->create($data);
         return $this->respondWithSuccess(__('Resource added successfully'), [
             'Resource' => new ResourceResource($Resource),
         ]);
@@ -99,6 +107,24 @@ class ResourceController extends BaseApiController
         return $this->respondWithSuccess(__('Resource prices added successfully'), [
             "resource_data" => new ResourceResource($Resource),
             'prices_history' => ResourcePriceResource::make($price),
+        ]);
+    }
+
+    /**
+     * List all resource prices created by the authenticated user.
+     */
+    public function myPrices(): JsonResponse
+    {
+        $prices = resourcePrice::query()
+            ->with(['resource.category', 'location', 'supplier', 'updatedBy'])
+            ->where('updated_by', auth()->id())
+            ->latest()
+            ->get();
+
+        $price_count = $prices->count();
+        return $this->respondWithSuccess(__('My prices'), [
+            "price_count" => $price_count,
+            'prices' => ResourcePriceResource::collection($prices),
         ]);
     }
 

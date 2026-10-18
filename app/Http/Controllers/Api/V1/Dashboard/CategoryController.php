@@ -21,6 +21,25 @@ class CategoryController extends BaseApiController
         parent::__construct($repository, CategoryResource::class, 'categories');
     }
 
+    public function index(): mixed
+    {
+        $order = request()->input('order', $this->order);
+        $orderBy = request()->input('orderBy', $this->orderBy);
+        $relations = array_unique(array_merge($this->relations, ['parent']));
+
+        $categories = $this->repository->search(
+            filters: request()->all(),
+            relations: $relations,
+            applyOrder: $order,
+            page: false,
+            limit: 0,
+            orderBy: $orderBy,
+            conditions: $this->conditions
+        );
+
+        return $this->respondWithCollection(CategoryResource::collection($categories));
+    }
+
     /**
      * @param CategoryRequest $request
      * @return JsonResponse

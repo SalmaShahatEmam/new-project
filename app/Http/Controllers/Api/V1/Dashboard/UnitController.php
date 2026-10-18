@@ -21,6 +21,35 @@ class UnitController extends BaseApiController
         parent::__construct($repository, UnitResource::class, 'units');
     }
 
+    public function index(): mixed
+    {
+        $order = request()->input('order', $this->order);
+        $orderBy = request()->input('orderBy', $this->orderBy);
+
+        $units = $this->repository->search(
+            filters: request()->all(),
+            relations: $this->relations,
+            applyOrder: $order,
+            page: false,
+            limit: 0,
+            orderBy: $orderBy,
+            conditions: $this->conditions
+        );
+
+        return $this->respondWithCollection(UnitResource::collection($units));
+    }
+
+    public function active(): JsonResponse
+    {
+        $units = Unit::query()
+            ->where('is_active', true)
+            ->get();
+
+        return $this->respondWithSuccess(__('Active units'), [
+            'units' => UnitResource::collection($units),
+        ]);
+    }
+
     /**
      * @param UnitRequest $request
      * @return JsonResponse

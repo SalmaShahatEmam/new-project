@@ -24,6 +24,7 @@ class Resource extends Model
 
     # Relations
     protected $with = ['category', 'unit' , "resourcePrices"];
+    protected $appends = ['latest_price', 'latest_tax'];
     protected $filters = ["name" , "description" , "unit_of_measure" , "category_id" , "resource_code"];
     protected $translatable = ['name', 'description' , 'unit_of_measure'];
 
@@ -32,6 +33,29 @@ class Resource extends Model
         return $query->where('is_active', $activation);
     }
 
+    public function getLatestPriceAttribute(): ?string
+    {
+        return $this->latestResourcePrice()?->price;
+    }
+
+    public function getLatestTaxAttribute(): ?string
+    {
+        return $this->latestResourcePrice()?->tax_value;
+    }
+
+    private function latestResourcePrice(): ?resourcePrice
+    {
+        if ($this->relationLoaded('resourcePrices')) {
+            return $this->resourcePrices
+                ->sortByDesc(fn (resourcePrice $price) => [$price->effective_date, $price->id])
+                ->first();
+        }
+
+        return $this->resourcePrices()
+            ->orderByDesc('effective_date')
+            ->orderByDesc('id')
+            ->first();
+    }
     public function scopeofCategory_id(Builder $query , $category_id)
     {
         return $query->where('category_id', $category_id);

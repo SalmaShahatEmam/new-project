@@ -23,12 +23,15 @@ class SupplierRequest extends FormRequest
             "name" => "required|array",
             "contact" => "required|string|max:255",
             "map_link" => "nullable|string|max:255",
-            
+            "email" => "nullable|email|max:255",
+            "location_id" => "nullable|exists:locations,id",
         ];
         if($this->getMethod() == "POST")
             return $this->postRules($rules);
         elseif($this->getMethod() == "PUT" || $this->getMethod() == "PATCH" )
             return $this->putPatchRules($rules);
+
+        return $rules;
     }
 
     public function attributes(): array

@@ -14,7 +14,7 @@ class Supplier extends Model
 
   #   protected $table = "suppliers";
 
-    protected $fillable = ["name" , "contact" , "map_link" , "status"];
+    protected $fillable = ["name" , "contact" , "map_link" , "status", "email", "location_id"];
 
     protected $filters = ["name" , "contact" , "map_link" , "status"];
 
@@ -23,6 +23,16 @@ class Supplier extends Model
     protected $casts = [
         'name' => 'array',
     ];
+
+        public function location()
+        {
+            return $this->belongsTo(Location::class);
+        }
+
+        public function resourcePrices()
+        {
+            return $this->hasMany(resourcePrice::class);
+        }
   
    public function scopeofStatus(Builder $query , $status)
     {

@@ -33,6 +33,8 @@ class User extends Authenticatable implements HasMedia
 
     protected $guarded = ['avatar'];
 
+    protected $guard_name = 'api';
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -49,10 +51,10 @@ class User extends Authenticatable implements HasMedia
         "latest_o_t_p_token",
         
     ];
-
+/* 
     protected $appends = [
-        'avatar',"city_name" , "image" , "qr"
-    ];
+        'avatar',"city_name" , "image" , "qr" /*  , "status" 
+    ]; */
     /**
      * The attributes that should be cast.
      *
@@ -64,7 +66,32 @@ class User extends Authenticatable implements HasMedia
     ];
 
 
+    protected $filters=["status" , "name" , "email" , "role_id"];
     # Getters
+
+    public function scopeOfStatus($query , $status)
+    {
+       
+        return $query->where('status' , $status);
+      
+    }
+
+    public function scopeOfName($query , $name)
+    {
+        return $query->where('name' , 'LIKE' , "%$name%");
+    }
+
+    public function scopeOfEmail($query , $email)
+    {
+        return $query->where('email' , 'LIKE' , "%$email%");
+    }
+
+    public function scopeOfRole_id($query , $role_id)
+    {
+        return $query->whereHas('roles' , function($q) use ($role_id){
+            $q->where('id' , $role_id);
+        });
+    }
 
     public function registerMediaCollections(): void
     {
@@ -119,6 +146,13 @@ class User extends Authenticatable implements HasMedia
 
 
     #Relations 
+    public function sites(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Site::class)
+            ->using(SiteUser::class)
+            ->withTimestamps();
+    }
+
     public function providerDetails()
     {
         return $this->hasOne(ProviderDetails::class, 'user_id', 'id');

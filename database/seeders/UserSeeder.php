@@ -22,6 +22,8 @@ class UserSeeder extends Seeder
         DB::table('model_has_roles')->truncate();
         DB::table('model_has_permissions')->truncate();
 
+        $this->call(SiteEngineerPermissionSeeder::class);
+
         $permissions = Permission::all();
         $clientPermissions = Permission::where('for_users', 1)->get();
 
@@ -72,7 +74,7 @@ class UserSeeder extends Seeder
             ['email' => 'CostEstimator@Estimator.com'],
             [
                 'name' => 'CostEstimator',
-                'mobile' => 123456789,
+                'mobile' => 123456780,
                 'password' => 123123123,
                 'is_active' => true,
                 'type' => UserTypeEnum::CostEstimator
@@ -83,5 +85,24 @@ class UserSeeder extends Seeder
         $this->command->warn(123123);
         $this->command->line('------------------------------------------------------------------------------');
    
+        $siteEngineerRole = Role::where('slug', 'site-engineer')
+            ->where('guard_name', 'api')
+            ->firstOrFail();
+        $siteEngineer = User::firstOrCreate(
+            ['email' => 'site.engineer@site.com'],
+            [
+                'name' => 'Site Engineer',
+                'mobile' => 123456781,
+                'password' => 123123123,
+                'is_active' => true,
+                'type' => UserTypeEnum::EMPLOYEE,
+            ]
+        );
+        $siteEngineer->assignRole($siteEngineerRole);
+        $this->command->info('Site Engineer:');
+        $this->command->warn($siteEngineer->email);
+        $this->command->warn(123123);
+        $this->command->line('------------------------------------------------------------------------------');
+
         }
 }

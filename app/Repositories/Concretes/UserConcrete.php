@@ -46,21 +46,18 @@ class UserConcrete extends BaseConcrete implements UserContract
     public function update(Model $model, array $attributes = []): mixed
     {
         if (!empty($attributes)) {
+         
             $role_id = Arr::pull($attributes, 'role_id');
-            if (Arr::has($attributes, 'password') && !empty($attributes['password'])) {
+           /*  if (Arr::has($attributes, 'password') && !empty($attributes['password'])) {
                 $attributes['password'] = bcrypt($attributes['password']);
-            }
+            } */
+
 
             $filtered = $this->cleanUpAttributes($attributes);
             $model = tap($model)->update($filtered)->fresh();
-            $model->syncRoles([$role_id]);
-
-            $this->propertyLogActivity(
-                $model,
-                auth()->user(),
-                "$this->modelName Updated",
-                ['action' => 'Update', 'module' => $this->modelName]
-            );
+            $role = Role::findOrFail($role_id);
+            $model->syncRoles([$role]);
+          
             return $model;
         }
         return false;

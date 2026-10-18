@@ -28,6 +28,7 @@ class SupplierController extends BaseApiController
     public function store(SupplierRequest $request): JsonResponse
     {
         $Supplier = $this->repository->create($request->validated());
+        $Supplier->refresh();
         return $this->respondWithSuccess(__('Supplier added successfully'), [
             'Supplier' => new SupplierResource($Supplier),
         ]);
@@ -56,6 +57,7 @@ class SupplierController extends BaseApiController
     public function update(SupplierRequest $request, Supplier $Supplier): JsonResponse
     {
         $Supplier = $this->repository->update($Supplier, $request->all());
+
         return $this->respondWithSuccess(__('Supplier updated successfully'), [
             'Supplier' => (new SupplierResource($Supplier)),
         ]);
@@ -72,6 +74,18 @@ class SupplierController extends BaseApiController
     {
         $this->repository->remove($Supplier);
         return $this->respondWithSuccess(trans('messages.responses.deleted'));
+    }
+
+    public function active(): JsonResponse
+    {
+        $suppliers = Supplier::query()
+            ->with('location')
+            ->where('status', 'active')
+            ->get();
+
+        return $this->respondWithSuccess(__('Active suppliers'), [
+            'suppliers' => SupplierResource::collection($suppliers),
+        ]);
     }
 
     public function toggleActive(Supplier $Supplier): JsonResponse

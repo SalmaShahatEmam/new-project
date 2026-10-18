@@ -28,7 +28,7 @@ class ResourceRequest extends FormRequest
          #   "unit_of_measure.en" => "required|string|max:255",
            # "unit_of_measure.ar" => "required|string|max:255",
             "unit_id" => "required|exists:units,id",
-            "resource_code" => "required|string|max:255|unique:resources,resource_code," . $this->resource?->id,
+            "resource_code" => "sometimes|string|max:255|unique:resources,resource_code," . $this->resource?->id,
         ];
         if($this->getMethod() == "POST")
             return $this->postRules($rules);
