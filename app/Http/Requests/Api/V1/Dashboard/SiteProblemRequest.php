@@ -36,7 +36,7 @@ class SiteProblemRequest extends FormRequest
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => [
                 'file',
-                'mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx',
+                'mimes:jpg,jpeg,png,gif,bmp,webp,avif,heic,heif,pdf,doc,docx,xls,xlsx',
                 'max:10240',
             ],
         ];

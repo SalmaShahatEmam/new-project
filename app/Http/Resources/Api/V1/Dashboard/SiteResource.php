@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1\Dashboard;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Api\V1\Dashboard\ReportResource;
 
 class SiteResource extends JsonResource
 {
@@ -15,6 +16,7 @@ class SiteResource extends JsonResource
             'problems as site_problem_count',
             'reports as site_equipment' => fn ($query) => $query->where('report_type', 'equipment'),
         ]);
+
 
         return [
             'id' => $this->id,
@@ -44,6 +46,7 @@ class SiteResource extends JsonResource
             'site_report_labour_count' => $this->site_report_labour,
             'site_report_material_count' => $this->site_report_material,
             'site_equipment_count' => $this->site_equipment,
+            'reports' => $this->whenLoaded('reports', fn () => ReportResource::collection($this->reports)),
         ];
     }
 }

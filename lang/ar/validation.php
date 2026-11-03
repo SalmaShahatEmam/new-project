@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'site_problem_update_required_fields' => 'يُرجى تقديم حقل واحد على الأقل للتحديث.',
 
     /*
     |--------------------------------------------------------------------------
@@ -157,6 +158,17 @@ return [
 
 
     'custom' => [
+        'resources' => [
+            'prohibited_unless' => 'لا يمكن إرسال عناصر الموارد إلا لتقارير العمالة أو المواد أو المعدات.',
+        ],
+        'attachments.*' => [
+            'mimes' => 'يجب أن يكون كل مرفق صورة أو ملف PDF أو Word أو Excel بصيغة مدعومة.',
+            'max' => 'يجب ألا يتجاوز حجم كل مرفق 10 ميجابايت.',
+            'uploaded' => 'تعذر رفع المرفق. يُرجى المحاولة مرة أخرى.',
+        ],
+        'report_type' => [
+            'in' => 'اختر نوع تقرير صحيحًا: عمالة أو مواد أو معدات أو مشكلات.',
+        ],
         'name' => [
             'regex' => 'يجب ان يحتوي الاسم علي الاقل حرف واحد',
         ],
@@ -174,10 +186,60 @@ return [
     */
 
     'attributes' => [
+        'site_id' => 'الموقع',
+        'project_id' => 'المشروع',
+        'id' => 'المعرّف',
+        'user_ids' => 'المستخدمون',
+        'user_ids.*' => 'المستخدم',
+        'description' => 'الوصف',
+        'contract_date' => 'تاريخ العقد',
+        'duration_in_months' => 'المدة بالشهور',
+        'location_id' => 'الموقع الجغرافي',
+        'priority' => 'الأولوية',
+        'explanation' => 'وصف المشكلة',
+        'causes' => 'الأسباب',
+        'notes' => 'الملاحظات',
+        'founded_by' => 'مقدم البلاغ',
+        'assigned_to' => 'المستخدم المكلف',
+        'suggested_solutions' => 'الحلول المقترحة',
+        'suggested_solutions.*' => 'الحل المقترح',
+        'attachments' => 'المرفقات',
+        'attachments.*' => 'المرفق',
+        'report_type' => 'نوع التقرير',
+        'resources' => 'عناصر الموارد',
+        'resources.*.resource_id' => 'المورد',
+        'resources.*.quantity' => 'الكمية',
+        'resources.*.supplier_id' => 'المورد',
+        'resources.*.report_content' => 'تفاصيل التقرير',
+        'resources.*.notes' => 'ملاحظات التقرير',
+        'resources.*.location_id' => 'موقع المورد',
+        'resources.*.note' => 'ملاحظة المورد',
+        'resources.*' => 'عنصر المورد',
+        'resource_id' => 'المورد',
+        'supplier_id' => 'المورد',
+        'report_content' => 'تفاصيل التقرير',
+        'section_name' => 'اسم القسم',
+        'engineer_id' => 'المهندس',
+        'Structural_id' => 'المهندس الإنشائي',
+        'Architectural_id' => 'المهندس المعماري',
+        'Electrical_id' => 'المهندس الكهربائي',
+        'Mechanical_id' => 'المهندس الميكانيكي',
+        'deadline' => 'الموعد النهائي',
+        'dead_line' => 'الموعد النهائي',
+        'end_date' => 'تاريخ الانتهاء',
+        'reopen_reason' => 'سبب إعادة الفتح',
+        'reject_message' => 'سبب الرفض',
+        'note' => 'ملاحظة',
+        'report_date' => 'تاريخ التقرير',
+        'date' => 'التاريخ',
+        'page' => 'الصفحة',
+        'limit' => 'عدد النتائج في الصفحة',
+        'order' => 'ترتيب النتائج',
+        'orderBy' => 'حقل الترتيب',
         'blocks_num' => 'رقم الوحده',
         'governorate_id' => 'المحافظه',
         'role_id' => 'الدور',
-        'user_id' => 'العملاء',
+        'user_id' => 'المستخدم',
         'code' => 'كود',
         'bid_amount' => 'قيمة المزايدة',
         'store_name' => 'اسم المتجر',

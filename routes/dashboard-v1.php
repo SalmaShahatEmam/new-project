@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ActivityHistoryController;
 use App\Http\Controllers\Api\V1\Dashboard\AssistantController;
 use App\Http\Controllers\Api\V1\Dashboard\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
+use App\Http\Controllers\Api\V1\Dashboard\CombinedReportController;
 use App\Http\Controllers\Api\V1\Dashboard\LocationController;
 use App\Http\Controllers\Api\V1\Dashboard\PermissionController;
 use App\Http\Controllers\Api\V1\Dashboard\ProjectController;
@@ -36,6 +37,7 @@ Route::prefix('auth')->group(function () {
         Route::post('resend-otp', [AuthController::class, 'resendOTP']);
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('profile', [AuthController::class, 'profile']);
+        Route::post('login-as/{user}', [AuthController::class, 'loginAs'])->middleware('admin');
         Route::post('changpassword', [AuthController::class, 'changePassword']);
         Route::post('reset-password', [AuthController::class, 'resetPassword']);
         Route::delete('delete-account', [AuthController::class, 'deleteAccount']);
@@ -64,19 +66,40 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('locations/{location}/toggle-active', [LocationController::class, 'toggleActive']);
 
     // Sites
+    Route::match(['get', 'post'], 'used-materials', [SiteController::class, 'usedMaterials']);
+    Route::post('update-report-site' , [SiteController::class,'updateReportToSite']);
+    Route::get('get-daily-reports' , [SiteController::class, 'getDailySiteReports']);
+    Route::match(['get', 'post'], 'sites-with-reports', [SiteController::class, 'sitesWithReports']);
+    Route::match(['get', 'post'], 'sites/{site}/with-reports', [SiteController::class, 'sitesWithReports']);
     Route::post('reports-and-problems/by-date', [SiteController::class, 'reportsAndProblemsByDate']);
     Route::post('sites/{site}/problems', [SiteController::class, 'addProblemToSite']);
     Route::get('sites/{site}/problems', [SiteController::class, 'siteProblems']);
+    Route::delete('sites/{site}/problems/{problem}', [SiteController::class, 'deleteSiteProblem']);
+    Route::delete('sites/{site}/problems', [SiteController::class, 'deleteSiteProblem']);
+    Route::delete('site-problems/{problem}', [SiteController::class, 'deleteSiteProblem']);
+    Route::delete('problems/{problem}', [SiteController::class, 'deleteSiteProblem']);
     Route::patch('site-problems/{problem}/status', [SiteController::class, 'updateSiteProblemStatus']);
+    Route::delete('reports/{site}/by-date', [SiteController::class, 'deleteReportsByDate']);
+    Route::delete('reports/{site}/by-date-and-type', [SiteController::class, 'deleteReportsByDateAndType']);
+    Route::delete('reports/{site}/by-date-type-and-user', [SiteController::class, 'deleteReportsByDateTypeAndUser']);
+    Route::get('reports/{report}', [SiteController::class, 'showReport']);
+    Route::delete('reports/{report}', [SiteController::class, 'deleteReport']);
     Route::apiResource('sites', SiteController::class);
     Route::post('addUserToSite', [SiteController::class, 'addUserToSite']);
     Route::delete('removeUserFromSite', [SiteController::class, 'removeUserFromSite']);
-    Route::patch('sites/{site}/status', [SiteController::class, 'updateStatus'])->middleware('role:admin');
-    Route::patch('sites/{site}/durationExpand', [SiteController::class, 'durationExpand'])->middleware('role:admin');
+    Route::patch('sites/{site}/status', [SiteController::class, 'updateStatus'])->middleware('admin');
+    Route::patch('sites/{site}/durationExpand', [SiteController::class, 'durationExpand'])->middleware('admin');
     // add report to site
 
     Route::post('addReportToSite', [SiteController::class, 'addReportToSite']);
 
+    // Combined reports
+    Route::post('combined-reports', [CombinedReportController::class, 'store']);
+    Route::get('combined-reports', [CombinedReportController::class, 'index']);
+    Route::get('combined-reports/{combinedReport}', [CombinedReportController::class, 'show']);
+    Route::delete('combined-reports/{combinedReport}', [CombinedReportController::class, 'destroy']);
+    Route::get('sites/{site}/combined-reports', [CombinedReportController::class, 'siteIndex']);
+    
     // Resource
     Route::apiResource('resources', ResourceController::class);
     Route::get('resources/{resource}/prices', [ResourceController::class, 'getPrices']);

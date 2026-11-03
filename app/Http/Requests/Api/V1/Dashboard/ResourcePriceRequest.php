@@ -32,7 +32,8 @@ class ResourcePriceRequest extends FormRequest
             "location_id" => "required|exists:locations,id",
             "resource_id" => "required|exists:resources,id",
             "supplier_id" => "nullable|exists:suppliers,id",
-            "tax_value"    => "required"       
+            "tax_value"    => "required",
+            "note"         => "nullable|string",
         ];
         if($this->getMethod() == "POST")
             return $this->postRules($rules);

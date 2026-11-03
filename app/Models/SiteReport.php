@@ -22,6 +22,7 @@ class SiteReport extends Model
         'supplier_id',
         'report_content',
         'notes',
+        'created_at',
     ];
 
     protected $casts = [

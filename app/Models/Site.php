@@ -31,11 +31,12 @@ class Site extends Model
 
     #site_report_labour
 
-    public function getSiteReportCountAttribute()
-    {
-        return $this->reports()->count();
-    }
-
+ public function getSiteReportCountAttribute(): int
+{
+    return (int) $this->reports()
+        ->selectRaw('COUNT(DISTINCT DATE(created_at)) AS total')
+        ->value('total');
+}
 
     public function getSiteReportLabourAttribute()
     {
@@ -83,6 +84,11 @@ class Site extends Model
     public function reports()
     {
         return $this->hasMany(SiteReport::class);
+    }
+
+    public function combinedReports()
+    {
+        return $this->hasMany(CombinedReport::class);
     }
 
     public function problems()

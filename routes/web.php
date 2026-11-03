@@ -22,7 +22,6 @@ Route::controller(PaymentController::class)
         Route::any('/callback-pay-invoice', 'callbackPayInvoice')->name('callback-pay-invoice');
 });
 
-
 Route::get('/', function () {
     return view('welcome');
 });

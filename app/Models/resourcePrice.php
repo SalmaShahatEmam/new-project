@@ -13,7 +13,8 @@ class resourcePrice extends Model
 {
     use HasFactory, ModelTrait, SoftDeletes;
 
-    protected $fillable = ['resource_id', 'location_id', 'price', 'updated_by', 'currency', 'effective_date', 'tax_value', 'supplier_id'];
+    protected $fillable = ['resource_id', 'location_id', 'price', 'updated_by', 
+    'currency', 'effective_date', 'tax_value', 'supplier_id', 'note'];
 
     protected $appends = ['price_after_tax', 'leatestPrice' ];
 

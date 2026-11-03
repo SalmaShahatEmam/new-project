@@ -10,6 +10,8 @@ class ReportResource extends JsonResource
     {
         $this->loadMissing(['site', 'user', 'resource', 'supplier']);
 
+        $relatedResource = $this->resource?->resource;
+
         return [
             'id' => $this->id,
             'site_id' => $this->site_id,
@@ -24,13 +26,17 @@ class ReportResource extends JsonResource
             ] : null,
             'report_type' => $this->report_type?->value ?? $this->report_type,
             'resource_id' => $this->resource_id,
-            'resource' => $this->resource ? [
-                'id' => $this->resource->id,
-                'name' => $this->translateValue($this->resource->name),
+            'resource' => $relatedResource ? [
+                'id' => $relatedResource->id,
+                'name' => $this->translateValue($relatedResource->name),
             ] : null,
             'quantity' => $this->quantity,
             'price' => $this->price,
             'tax' => $this->tax,
+            "item_after_tax" => $this->price + ($this->tax * $this->price /100),
+            "total_before_tax" => $this->quantity * $this->price ,
+            "total_after_tax" => ($this->quantity * ($this->price + ($this->tax * $this->price /100))),
+            "total_tax" => ($this->quantity * ($this->tax * $this->price /100)),
             'supplier_id' => $this->supplier_id,
             'supplier' => $this->supplier ? [
                 'id' => $this->supplier->id,

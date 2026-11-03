@@ -30,5 +30,6 @@
     'units' => 'units',
     'suppliers' => 'suppliers',
     'sites' => 'sites',
+    'reports' => 'reports',
   ),
 );

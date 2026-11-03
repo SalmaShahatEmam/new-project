@@ -16,6 +16,7 @@ class SiteEngineerPermissionSeeder extends Seeder
             'projects',       
             'locations',
             'resources',
+            'categories',
             'suppliers',
             'units',
             'chats',

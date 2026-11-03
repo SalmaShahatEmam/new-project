@@ -32,10 +32,11 @@ class ResourcePriceResource extends JsonResource
             "supplier_id" => $this->supplier_id,
             "supplier_name" => $this->supplier?->name,
             "supplier_map_link" => $this->supplier?->map_link,
-           
-                    'updated_by_id' => $this->updatedBy->id,
-                    'updated_by_name' => $this->updatedBy->name,
+                
+            'updated_by_id' => $this->updatedBy->id,
+            'updated_by_name' => $this->updatedBy->name,
              
+            'note' => $this->note,
             'created_at' => $this->created_at,
         ];
     }

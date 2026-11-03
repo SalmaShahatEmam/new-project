@@ -20,7 +20,9 @@ class ResourceResource extends JsonResource
             'resource_code' => $this->resource_code,
             'name' => $this->name,
             'description' => $this->description,
+          'latest_price_date' => $this->resourcePrices?->last()?->created_at,
             'category_id' => $this->category_id,
+            
             'category' => $this->whenLoaded('category', function () {
                 return [
                     'id' => $this->category->id,

@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'site_problem_update_required_fields' => 'Provide at least one field to update.',
 
     /*
     |--------------------------------------------------------------------------
@@ -153,6 +154,17 @@ return [
     */
 
     'custom' => [
+        'resources' => [
+            'prohibited_unless' => 'Resource items may only be sent for labor, materials, or equipment reports.',
+        ],
+        'attachments.*' => [
+            'mimes' => 'Each attachment must be a supported image, PDF, Word, or Excel file.',
+            'max' => 'Each attachment must not exceed 10 MB.',
+            'uploaded' => 'The attachment failed to upload. Please try again.',
+        ],
+        'report_type' => [
+            'in' => 'Select a valid report type: labor, materials, equipment, or issues.',
+        ],
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],
@@ -170,6 +182,59 @@ return [
     */
 
     'attributes' => [
+        'site_id' => 'site',
+        'project_id' => 'project',
+        'id' => 'ID',
+        'name' => 'name',
+        'user_id' => 'user',
+        'user_ids' => 'users',
+        'user_ids.*' => 'user',
+        'description' => 'description',
+        'contract_date' => 'contract date',
+        'duration_in_months' => 'duration in months',
+        'location_id' => 'location',
+        'priority' => 'priority',
+        'explanation' => 'problem description',
+        'causes' => 'causes',
+        'notes' => 'notes',
+        'founded_by' => 'reported by',
+        'assigned_to' => 'assigned user',
+        'suggested_solutions' => 'suggested solutions',
+        'suggested_solutions.*' => 'suggested solution',
+        'attachments' => 'attachments',
+        'attachments.*' => 'attachment',
+        'report_type' => 'report type',
+        'resources' => 'resource items',
+        'resources.*.resource_id' => 'resource',
+        'resources.*.quantity' => 'quantity',
+        'resources.*.supplier_id' => 'supplier',
+        'resources.*.report_content' => 'report details',
+        'resources.*.notes' => 'report notes',
+        'resources.*.location_id' => 'resource location',
+        'resources.*.note' => 'resource note',
+        'resources.*' => 'resource item',
+        'resource_id' => 'resource',
+        'quantity' => 'quantity',
+        'supplier_id' => 'supplier',
+        'report_content' => 'report details',
+        'section_name' => 'section name',
+        'engineer_id' => 'engineer',
+        'Structural_id' => 'structural engineer',
+        'Architectural_id' => 'architectural engineer',
+        'Electrical_id' => 'electrical engineer',
+        'Mechanical_id' => 'mechanical engineer',
+        'deadline' => 'deadline',
+        'dead_line' => 'deadline',
+        'end_date' => 'end date',
+        'reopen_reason' => 'reason for reopening',
+        'reject_message' => 'rejection reason',
+        'note' => 'note',
+        'report_date' => 'report date',
+        'date' => 'date',
+        'page' => 'page',
+        'limit' => 'results per page',
+        'order' => 'sort order',
+        'orderBy' => 'sort field',
         'role_id' => 'role',
         "days "=>"days",
         'blocks_num' => 'Block Number',

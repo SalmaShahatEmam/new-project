@@ -19,6 +19,7 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @group Dashboard Admin
@@ -58,6 +59,37 @@ class AuthController extends Controller
                 $this->authAdminService->login($request)
             )
         );
+    }
+
+    /**
+     * Issue a short-lived access token for a user to whom an admin is switching.
+     */
+    public function loginAs(Request $request, User $user): JsonResponse
+    {
+        $admin = $request->user('api');
+        abort_unless(
+            $admin !== null && $admin->roles()
+                ->where('guard_name', 'api')
+                ->where(function ($query) {
+                    $query->where('slug', Role::DEFAULT_ROLE_SUPER_ADMIN)
+                        ->orWhere('name->en', Role::DEFAULT_ROLE_SUPER_ADMIN);
+                })
+                ->exists(),
+            403
+        );
+
+        $user->access_token = $user->createToken(
+            "impersonation:{$admin->id}",
+            ['*'],
+            now()->addHour()
+        )->plainTextToken;
+
+        Log::info('Admin impersonation token issued', [
+            'admin_id' => $admin->id,
+            'target_user_id' => $user->id,
+        ]);
+
+        return $this->respondWithModelData(new AdminResource($user));
     }
 
    public function register(RegisterAdminRequest $request): JsonResponse
