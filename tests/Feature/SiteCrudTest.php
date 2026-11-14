@@ -106,6 +106,49 @@ class SiteCrudTest extends TestCase
             ->assertJsonMissing(['id' => $wrongStatusSite->id]);
     }
 
+    public function test_site_resource_includes_latest_report_and_problem_dates(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user, 'api');
+        $location = Location::query()->create([
+            'name' => ['en' => 'North', 'ar' => 'الشمال'],
+            'code' => 'NORTH',
+        ]);
+        $site = Site::query()->create(['location_id' => $location->id]);
+
+        $olderReport = $site->reports()->create([
+            'user_id' => $user->id,
+            'report_type' => 'labor',
+            'report_content' => 'Older report',
+        ]);
+        $latestReport = $site->reports()->create([
+            'user_id' => $user->id,
+            'report_type' => 'labor',
+            'report_content' => 'Latest report',
+        ]);
+        $olderProblem = $site->problems()->create([
+            'user_id' => $user->id,
+            'explanation' => 'Older problem',
+        ]);
+        $latestProblem = $site->problems()->create([
+            'user_id' => $user->id,
+            'explanation' => 'Latest problem',
+        ]);
+
+        $olderDate = now()->subDays(3)->setTime(12, 0);
+        $latestReportDate = now()->subDays(2)->setTime(12, 0);
+        $latestProblemDate = now()->subDay()->setTime(12, 0);
+        $olderReport->forceFill(['created_at' => $olderDate])->save();
+        $latestReport->forceFill(['created_at' => $latestReportDate])->save();
+        $olderProblem->forceFill(['created_at' => $olderDate])->save();
+        $latestProblem->forceFill(['created_at' => $latestProblemDate])->save();
+
+        $this->getJson('/dashboard-api/v1/sites?limit=10')
+            ->assertOk()
+            ->assertJsonPath('data.data.0.last_report_date', $latestReportDate->format('Y-m-d H:i:s'))
+            ->assertJsonPath('data.data.0.last_problem_date', $latestProblemDate->format('Y-m-d H:i:s'));
+    }
+
     public function test_report_details_can_be_retrieved_by_id(): void
     {
         $user = User::factory()->create();

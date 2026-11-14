@@ -16,6 +16,10 @@ class SiteResource extends JsonResource
             'problems as site_problem_count',
             'reports as site_equipment' => fn ($query) => $query->where('report_type', 'equipment'),
         ]);
+        $this->loadMax([
+            'reports as last_report_date',
+            'problems as last_problem_date',
+        ], 'created_at');
 
 
         return [
@@ -46,6 +50,8 @@ class SiteResource extends JsonResource
             'site_report_labour_count' => $this->site_report_labour,
             'site_report_material_count' => $this->site_report_material,
             'site_equipment_count' => $this->site_equipment,
+            'last_report_date' => $this->last_report_date,
+            'last_problem_date' => $this->last_problem_date,
             'reports' => $this->whenLoaded('reports', fn () => ReportResource::collection($this->reports)),
         ];
     }

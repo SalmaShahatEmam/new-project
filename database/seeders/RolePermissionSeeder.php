@@ -26,13 +26,13 @@ class RolePermissionSeeder extends Seeder
      * The role slug to attach permissions to.
      * Examples: 'admin', 'site-engineer', 'estimation-engineer', 'purchase-engineer'
      */
-    public string $roleSlug = 'site-engineer';
+    public string $roleSlug = 'admin';
 
     /**
      * The model or models to generate permissions for.
      * Can be a string ('sites') or an array (['sites', 'reports', 'resources']).
      */
-    public string|array $models = ['categories'];
+    public string|array $models = ['orders'];
 
     /**
      * The CRUD methods to generate for each model.

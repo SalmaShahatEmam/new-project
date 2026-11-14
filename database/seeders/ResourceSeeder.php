@@ -9,7 +9,7 @@ class ResourceSeeder extends Seeder
 {
     public function run(): void
     {
-        $filePath = database_path('seeders/data/arcticture.php');
+        $filePath = database_path('seeders/data/system.php');
 
         if (!is_file($filePath)) {
             $this->command->error("File not found: {$filePath}");
@@ -19,7 +19,7 @@ class ResourceSeeder extends Seeder
         $items = require $filePath;
 
         if (!is_array($items)) {
-            $this->command->error('material.php did not return an array (got: ' . gettype($items) . ').');
+            $this->command->error('resource.php did not return an array (got: ' . gettype($items) . ').');
             return;
         }
 

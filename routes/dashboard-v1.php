@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Dashboard\OrderController;
 use App\Http\Controllers\Api\V1\Dashboard\ActivityHistoryController;
 use App\Http\Controllers\Api\V1\Dashboard\AssistantController;
 use App\Http\Controllers\Api\V1\Dashboard\AuthController;
@@ -10,8 +11,8 @@ use App\Http\Controllers\Api\V1\Dashboard\PermissionController;
 use App\Http\Controllers\Api\V1\Dashboard\ProjectController;
 use App\Http\Controllers\Api\V1\Dashboard\ResourceController;
 use App\Http\Controllers\Api\V1\Dashboard\RoleController;
-use App\Http\Controllers\Api\V1\Dashboard\SiteController;
 use App\Http\Controllers\Api\V1\Dashboard\SettingController;
+use App\Http\Controllers\Api\V1\Dashboard\SiteController;
 use App\Http\Controllers\Api\V1\Dashboard\SupplierController;
 use App\Http\Controllers\Api\V1\Dashboard\UnitController;
 use App\Http\Controllers\Api\V1\Dashboard\UserController;
@@ -173,6 +174,13 @@ Route::middleware(['auth:api'])->group(function () {
     });
 
 
+    #order routes
+    Route::get('orderStatics' , [orderController::class , 'orderStatics']);
+    Route::apiResource('orders', OrderController::class);
+    Route::get('myOrders', [OrderController::class, 'getMyOrders']);
+    Route::post("orders/{order_item_id}/order-item-status", [OrderController::class, 'updateOrderItemStatus']);
+    Route::put('orders/{order_item}/order-items', [OrderController::class, 'updateOrderItem']);
+    Route::delete('order-items/{order_item}', [OrderController::class, 'deleteOrderItem']);
     include __DIR__.'/chat.php';
 
     // Notification

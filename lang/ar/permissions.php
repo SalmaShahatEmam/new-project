@@ -12,7 +12,7 @@
     'roles' => 'الأدوار',
     'permissions' => 'الصلاحيات',
     'notifications' => 'الاشعارات',
-    'orders' => 'طلبات',
+    'orders' => 'orders',
     'chats' => 'الشات',
     'settings' => 'الإعدادات',
     'roles-models' => 

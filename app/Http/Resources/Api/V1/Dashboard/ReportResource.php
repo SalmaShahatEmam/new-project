@@ -12,6 +12,15 @@ class ReportResource extends JsonResource
 
         $relatedResource = $this->resource?->resource;
 
+        $price = (float) ($this->price ?? 0);
+        $tax = (float) ($this->tax ?? 0);
+        $quantity = (float) ($this->quantity ?? 0);
+
+        $itemAfterTax = $price + ($tax * $price / 100);
+        $totalBeforeTax = $quantity * $price;
+        $totalAfterTax = $quantity * $itemAfterTax;
+        $totalTax = $quantity * ($tax * $price / 100);
+
         return [
             'id' => $this->id,
             'site_id' => $this->site_id,
@@ -33,10 +42,10 @@ class ReportResource extends JsonResource
             'quantity' => $this->quantity,
             'price' => $this->price,
             'tax' => $this->tax,
-            "item_after_tax" => $this->price + ($this->tax * $this->price /100),
-            "total_before_tax" => $this->quantity * $this->price ,
-            "total_after_tax" => ($this->quantity * ($this->price + ($this->tax * $this->price /100))),
-            "total_tax" => ($this->quantity * ($this->tax * $this->price /100)),
+            'item_after_tax' => $itemAfterTax,
+            'total_before_tax' => $totalBeforeTax,
+            'total_after_tax' => $totalAfterTax,
+            'total_tax' => $totalTax,
             'supplier_id' => $this->supplier_id,
             'supplier' => $this->supplier ? [
                 'id' => $this->supplier->id,
