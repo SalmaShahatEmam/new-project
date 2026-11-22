@@ -62,6 +62,8 @@ class AssistantService
                 ],
             ]);
 
+        dd($response);
+
         if (! $response->successful()) {
             throw new RuntimeException('Assistant provider returned HTTP ' . $response->status() . '.');
         }

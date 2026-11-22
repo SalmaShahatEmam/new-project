@@ -26,7 +26,7 @@ class RepositoryServiceProvider extends ServiceProvider
 
     protected function getModels(): Collection
     {
-        $files = Storage::disk('app')->files('Models');
+        $files = glob(app_path('Models/*.php')) ?: [];
         return collect($files)->map(function ($file) {
             return basename($file, '.php');
         });

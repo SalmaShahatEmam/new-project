@@ -58,7 +58,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('admin/assistant/ask', [AssistantController::class, 'ask']);
 
     // AI Chat
-    Route::prefix('ai/chat')->group(function () {
+/*     Route::prefix('ai/chat')->group(function () {
         Route::post('/', [AIChatController::class, 'sendMessage']);
         Route::post('conversations', [AIChatController::class, 'createConversation']);
         Route::get('conversations', [AIChatController::class, 'listConversations']);
@@ -66,7 +66,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::delete('conversations/{id}', [AIChatController::class, 'deleteConversation']);
         Route::patch('conversations/{id}', [AIChatController::class, 'renameConversation']);
         Route::delete('conversations/{id}/messages', [AIChatController::class, 'clearMessages']);
-    });
+    }); */
 
     Route::get('history', [ActivityHistoryController::class, 'index']);
 
