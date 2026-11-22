@@ -17,8 +17,8 @@ class ResourceConcrete extends BaseConcrete implements ResourceContract
     }
 
 
-    public function storePrices(Resource $Resource, array $data): void
+    public function storePrices(Resource $Resource, array $data)
     {
-        $Resource->resourcePrices()->create($data);
+        return $Resource->resourcePrices()->create($data);
     }
 }

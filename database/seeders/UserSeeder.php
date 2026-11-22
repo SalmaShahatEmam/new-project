@@ -72,7 +72,7 @@ class UserSeeder extends Seeder
             ['email' => 'CostEstimator@Estimator.com'],
             [
                 'name' => 'CostEstimator',
-                'mobile' => 123456789,
+                'mobile' => 123456780,
                 'password' => 123123123,
                 'is_active' => true,
                 'type' => UserTypeEnum::CostEstimator

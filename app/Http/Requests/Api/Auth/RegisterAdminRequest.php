@@ -24,6 +24,13 @@ class RegisterAdminRequest extends FormRequest
         return true;
     }
 
+    public function prepareForValidation()
+    {
+        $this->merge([
+            "is_active" => 1,
+            'status' => "PENDING",
+        ]);
+    }
     /**
      * Get the validation rules that apply to the request.
      *
@@ -33,9 +40,10 @@ class RegisterAdminRequest extends FormRequest
     {
         return [
             "name" => ["required","string","max:190"],
-            "mobile" => ["required","unique:users,mobile"],
+            //"mobile" => ["required","unique:users,mobile"],
             "email" => ["sometimes","unique:users,email"],
             "password" => ["required","confirmed",Password::default()],
+            "role_id" => ["required","exists:roles,id"],
         ];
     }
 

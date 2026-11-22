@@ -70,7 +70,7 @@ class Handler extends ExceptionHandler
 
             if ($exception instanceof HttpException) {
                 $message = is_array($exception->getMessage()) ? $exception->getMessage()[0] : $exception->getMessage();
-                return $this->setStatusCode($exception->getCode())->respondWithError($message);
+                return $this->setStatusCode($exception->getStatusCode())->respondWithError($message);
             }
 
             if ($exception instanceof ValidationException) {

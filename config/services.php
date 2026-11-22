@@ -31,4 +31,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'assistant' => [
+        'base_url' => env('ASSISTANT_BASE_URL', 'https://api.groq.com/openai/v1'),
+        'api_key' => env('ASSISTANT_API_KEY'),
+        'model' => env('ASSISTANT_MODEL', 'openai/gpt-oss-20b'),
+        'timeout' => env('ASSISTANT_TIMEOUT', 45),
+    ],
+
 ];

@@ -455,6 +455,16 @@ abstract class BaseConcrete implements BaseContract
                         $query = $query->where($field, 'like', '%' . $value . '%');
                     }
                 }
+
+                if($conditionType == 'whereRelation' && !empty($whereConditions)) {
+                    foreach ($whereConditions as $relation => $relationConditions) {
+                        $query = $query->whereHas($relation, function ($q) use ($relationConditions) {
+                            foreach ($relationConditions as $field => $value) {
+                                $q->where($field, $value);
+                            }
+                        });
+                    }
+                }
             }
         }
         return $query;

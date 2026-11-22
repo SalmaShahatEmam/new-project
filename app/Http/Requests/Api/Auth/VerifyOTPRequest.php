@@ -27,6 +27,7 @@ class VerifyOTPRequest extends FormRequest
     public function rules()
     {
         return [
+            'email' => ['required', "exists:users,email,deleted_at,NULL"],
             'code' => ['required', 'string', 'min:4'],
         ];
     }

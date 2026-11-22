@@ -12,14 +12,16 @@ class Location extends Model
 {
     use HasFactory, ModelTrait , HasTranslations;
 
-    protected $fillable = ["name" , "code"];
+    protected $fillable = ["name" , "code" , "is_active" ];
     protected $filters = ["name" ];
     protected $casts = [
            'name' => 'array',
     ];
+    protected $translatable = ['name'];
+
     # Relations
 
-      public function scopeofName(Builder $query , $name)
+    public function scopeofName(Builder $query , $name)
     {
         return $query->where('name->en', 'LIKE', "%$name%")
             ->orWhere('name->ar', 'LIKE', "%$name%");

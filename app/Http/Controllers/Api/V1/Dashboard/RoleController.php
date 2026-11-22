@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Dashboard\RoleRequest;
 use App\Http\Resources\Api\RoleResource;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Repositories\Contracts\RoleContract;
 use Illuminate\Http\JsonResponse;
@@ -31,8 +32,14 @@ class RoleController extends BaseApiController
             'name' => $request['name'],
             'slug' => $request['name']['en'] ?? null,
         ]);
-        $requestPermissions = $request['role_permissions'] ? array_filter(Arr::flatten(array_values($request['role_permissions']))) : [];
-        $role->syncPermissions($requestPermissions);
+
+        $permissionIds = $request->input('role_permissions', []);
+
+        $permissions = Permission::whereIn('id', $permissionIds)->get();
+
+        $role->syncPermissions($permissions);
+     //   $requestPermissions = $request['role_permissions'] ? array_filter(Arr::flatten(array_values($request['role_permissions']))) : [];
+     //   $role->syncPermissions($requestPermissions);
         return $this->respondWithSuccess(__('role added successfully'), [
             'role' => new RoleResource($role),
         ]);
@@ -74,9 +81,14 @@ class RoleController extends BaseApiController
     public function update(RoleRequest $request, Role $role): JsonResponse
     {
         $role = $this->repository->update($role, $request->all());
-        $requestPermissions = $request['role_permissions'] ? array_filter(Arr::flatten(array_values($request['role_permissions']))) : [];
+          $permissionIds = $request->input('role_permissions', []);
+
+        $permissions = Permission::whereIn('id', $permissionIds)->get();
+
+        $role->syncPermissions($permissions);
+    /*     $requestPermissions = $request['role_permissions'] ? array_filter(Arr::flatten(array_values($request['role_permissions']))) : [];
         $role->syncPermissions($requestPermissions);
-        return $this->respondWithSuccess(__('role updated successfully'), [
+       */  return $this->respondWithSuccess(__('role updated successfully'), [
             'role' => (new RoleResource($role->load('permissions'))),
         ]);
     }

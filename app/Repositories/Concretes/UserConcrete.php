@@ -2,11 +2,12 @@
 
 namespace App\Repositories\Concretes;
 
-use App\Models\User;
 use App\Enum\UserTypeEnum;
-use Illuminate\Support\Arr;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Role;
+use App\Models\User;
 use App\Repositories\Contracts\UserContract;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 
 class UserConcrete extends BaseConcrete implements UserContract
 {
@@ -25,10 +26,11 @@ class UserConcrete extends BaseConcrete implements UserContract
             $role_id = Arr::pull($attributes, 'role_id');
             $attributes['password'] = bcrypt($attributes['password']);
             $attributes['type'] = $type;
+            $role = Role::findOrFail($role_id);
 
             $filtered = $this->cleanUpAttributes($attributes);
             $model = $this->query->create($filtered);
-            $model->assignRole($role_id);
+            $model->assignRole($role);
 
             $this->propertyLogActivity(
                 $model,
@@ -44,21 +46,21 @@ class UserConcrete extends BaseConcrete implements UserContract
     public function update(Model $model, array $attributes = []): mixed
     {
         if (!empty($attributes)) {
+         
             $role_id = Arr::pull($attributes, 'role_id');
-            if (Arr::has($attributes, 'password') && !empty($attributes['password'])) {
+           /*  if (Arr::has($attributes, 'password') && !empty($attributes['password'])) {
                 $attributes['password'] = bcrypt($attributes['password']);
-            }
+            } */
+
 
             $filtered = $this->cleanUpAttributes($attributes);
+        //    dd($filtered);
             $model = tap($model)->update($filtered)->fresh();
-            $model->syncRoles([$role_id]);
+            $role = Role::findOrFail($role_id);
 
-            $this->propertyLogActivity(
-                $model,
-                auth()->user(),
-                "$this->modelName Updated",
-                ['action' => 'Update', 'module' => $this->modelName]
-            );
+            $model->syncRoles([$role]);
+
+          
             return $model;
         }
         return false;

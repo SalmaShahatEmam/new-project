@@ -12,6 +12,7 @@ class LocationResource extends JsonResource
             'id' => $this->id,
             "code" => $this->code,
             'name' => $this->name,
+            'is_active' => $this->is_active,
             'created_at' => $this->created_at,
         ];
     }

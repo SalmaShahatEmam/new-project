@@ -18,8 +18,9 @@ class RoleResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            "name_ar" => getTranslation($this, 'name', 'ar'),
-            "name_en" => getTranslation($this, 'name', 'en'),
+  /*      
+        'name_ar' => $this->resource->getTranslation('name', 'ar'),
+        'name_en' => $this->resource->getTranslation('name', 'en'), */
             'slug' => $this->slug,
             'created_at' => $this->created_at?->translatedFormat('Y-m-d H:i a'),
             'permissions' => $this->permissions->isNotEmpty() ? $this->groupedPermissions() : (object)null,

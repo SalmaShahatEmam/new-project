@@ -25,5 +25,8 @@
     'categories' => 'categories',
     'locations' => 'locations',
     'resources' => 'resources',
+    'projects' => 'projects',
+    'units' => 'units',
+    'suppliers' => 'suppliers',
   ),
 );

@@ -13,6 +13,9 @@ class AdminResource extends UserResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        $data =  parent::toArray($request);
+        $data['role'] = $this->getRoleNames();
+        $data['status'] = $this->status;
+        return $data;
     }
 }

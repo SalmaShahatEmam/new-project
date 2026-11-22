@@ -21,6 +21,17 @@ class LocationController extends BaseApiController
         parent::__construct($repository, LocationResource::class, 'locations');
     }
 
+    public function active(): JsonResponse
+    {
+        $locations = Location::query()
+            ->where('is_active', true)
+            ->get();
+
+        return $this->respondWithSuccess(__('Active locations'), [
+            'locations' => LocationResource::collection($locations),
+        ]);
+    }
+
     /**
      * @param LocationRequest $request
      * @return JsonResponse
@@ -75,4 +86,13 @@ class LocationController extends BaseApiController
     }
 
 
+    public function toggleActive(Location $location): JsonResponse
+    {
+        $location->is_active = !$location->is_active;
+        $location->save();  
+
+        return $this->respondWithSuccess(__('Location updated successfully'), [
+            'Location' => (new LocationResource($location)),
+        ]);
+    }
 }

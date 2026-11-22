@@ -2,17 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Unit;
 use App\Traits\ModelTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Translatable\HasTranslations;
 
 class Resource extends Model
 {
-    use HasFactory, ModelTrait , HasTranslations;
+    use HasFactory, ModelTrait, HasTranslations, SoftDeletes;
 
-    protected $fillable = ["name" , "description" , "unit_of_measure" , "category_id" , "resource_code"];
+    protected $fillable = ["name" , "description" , "unit_of_measure" , "category_id" , "resource_code" , 'unit_id'];
 
     protected $casts = [
            'name' => 'array',
@@ -21,6 +23,8 @@ class Resource extends Model
     ];
 
     # Relations
+    protected $with = ['category', 'unit' , "resourcePrices"];
+    protected $appends = ['latest_price', 'latest_tax'];
     protected $filters = ["name" , "description" , "unit_of_measure" , "category_id" , "resource_code"];
     protected $translatable = ['name', 'description' , 'unit_of_measure'];
 
@@ -29,6 +33,29 @@ class Resource extends Model
         return $query->where('is_active', $activation);
     }
 
+    public function getLatestPriceAttribute(): ?string
+    {
+        return $this->latestResourcePrice()?->price;
+    }
+
+    public function getLatestTaxAttribute(): ?string
+    {
+        return $this->latestResourcePrice()?->tax_value;
+    }
+
+    private function latestResourcePrice(): ?resourcePrice
+    {
+        if ($this->relationLoaded('resourcePrices')) {
+            return $this->resourcePrices
+                ->sortByDesc(fn (resourcePrice $price) => [$price->effective_date, $price->id])
+                ->first();
+        }
+
+        return $this->resourcePrices()
+            ->orderByDesc('effective_date')
+            ->orderByDesc('id')
+            ->first();
+    }
     public function scopeofCategory_id(Builder $query , $category_id)
     {
         return $query->where('category_id', $category_id);
@@ -64,4 +91,12 @@ class Resource extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    public function unit() 
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+
+
 }

@@ -2,9 +2,11 @@
 
 namespace App\Services\Auth;
 
+use App\Enum\UserTypeEnum;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 
 class AuthAdminService extends AuthAbstract
 {
@@ -20,6 +22,12 @@ class AuthAdminService extends AuthAbstract
     {
         $request->authenticate();
         $user = $request->user();
+
+        if ($user->type !== UserTypeEnum::ADMIN && $user->status !== 'ACTIVE') {
+            throw ValidationException::withMessages([
+                'account' => __('Your account is pending or rejected !'),
+            ]);
+        }
 
         $accessToken = $user->createToken('snctumToken', $abilities ?? [], now()->addMonths(3))->plainTextToken;
 
@@ -42,11 +50,6 @@ class AuthAdminService extends AuthAbstract
     public function forgetPassword(FormRequest $request, $abilities = null)
     {
         $user = $this->model::whereEmail($request->email)->first();
-         tap($user)->update([
-            'email_verified_at' => NULL,
-            
-        ])->fresh(); 
-        $user->access_token = is_null($user->currentAccessToken()) ? $user->createToken('snctumToken', $abilities ?? [],now()->addHours(1))->plainTextToken : $user->currentAccessToken();
         return $this->handelOTPMethod($user);
     }
 

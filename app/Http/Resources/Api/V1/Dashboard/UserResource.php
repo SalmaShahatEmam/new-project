@@ -16,6 +16,7 @@ class UserResource extends JsonResource
             'email'         => $this->email,
             'mobile'        => $this->mobile,
             'is_active'     => $this->is_active,
+            "status"        => $this->status,
             'role'          => RoleResource::make($this->roles->first())
         ];
     }

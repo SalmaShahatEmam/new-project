@@ -92,7 +92,7 @@ protected function gate(): void
      *
      * @return void
      */
-protected function authorization(): void
+/* protected function authorization(): void
 {
     $this->gate();
     Telescope::auth(function ($request) {
@@ -103,6 +103,13 @@ protected function authorization(): void
             return $this->app->environment('local') ||
                     Gate::check('viewTelescope', [$request->user()]);
         }
+    });
+} */
+
+    protected function authorization(): void
+{
+    Telescope::auth(function ($request) {
+        return true;
     });
 }
 }

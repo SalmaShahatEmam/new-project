@@ -2,18 +2,24 @@
 
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
+use App\Enum\UserTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Auth\ChangePasswordRequest;
 use App\Http\Requests\Api\Auth\ForgetPasswordDashboardRequest;
 use App\Http\Requests\Api\Auth\LoginDashboardRequest;
+use App\Http\Requests\Api\Auth\RegisterAdminRequest;
 use App\Http\Requests\Api\Auth\ResetPasswordRequest;
 use App\Http\Requests\Api\Auth\SendOTPRequest;
 use App\Http\Requests\Api\Auth\VerifyOTPRequest;
 use App\Http\Resources\Api\Auth\AdminResource;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\Auth\AuthAdminService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @group Dashboard Admin
@@ -46,12 +52,68 @@ class AuthController extends Controller
      */
     public function login(LoginDashboardRequest $request): JsonResponse
     {
+
+        
         return $this->respondWithModelData(
             new AdminResource(
                 $this->authAdminService->login($request)
             )
         );
     }
+
+    /**
+     * Issue a short-lived access token for a user to whom an admin is switching.
+     */
+    public function loginAs(Request $request, User $user): JsonResponse
+    {
+        $admin = $request->user('api');
+        abort_unless(
+            $admin !== null && $admin->roles()
+                ->where('guard_name', 'api')
+                ->where(function ($query) {
+                    $query->where('slug', Role::DEFAULT_ROLE_SUPER_ADMIN)
+                        ->orWhere('name->en', Role::DEFAULT_ROLE_SUPER_ADMIN);
+                })
+                ->exists(),
+            403
+        );
+
+        $user->access_token = $user->createToken(
+            "impersonation:{$admin->id}",
+            ['*'],
+            now()->addHour()
+        )->plainTextToken;
+
+        Log::info('Admin impersonation token issued', [
+            'admin_id' => $admin->id,
+            'target_user_id' => $user->id,
+        ]);
+
+        return $this->respondWithModelData(new AdminResource($user));
+    }
+
+   public function register(RegisterAdminRequest $request): JsonResponse
+{
+    $attributes = $request->validated();
+
+    $role_id = Arr::pull($attributes, 'role_id');
+
+    $attributes['password'] = $attributes['password'];
+    $attributes['type'] = UserTypeEnum::EMPLOYEE;
+    $attributes["status"] = "PENDING";
+
+    $role = Role::findOrFail($role_id);
+
+    $model = User::create($attributes);
+
+    $model->assignRole($role);
+
+    $model->refresh();
+    return $this->respondWithSuccess(
+        __('account created successfully') ,[
+        "user" => new AdminResource($model)]
+    );
+}
 
     /**
      * Send OTP To Mobile Number.
@@ -102,7 +164,9 @@ class AuthController extends Controller
      */
     public function verifyOTP(VerifyOTPRequest $request): JsonResponse
     {
-        return $this->authAdminService->verifyOTP($request);
+       return $this->authAdminService->verifyOTP($request);
+
+      
     }
 
     /**
@@ -145,9 +209,8 @@ class AuthController extends Controller
     public function forgetPassword(ForgetPasswordDashboardRequest $request): JsonResponse
     {
        
- 
         return $this->respondWithSuccess(
-            __('Password Reset Successfully'),
+            __('OTP sent Successfully'),
             ["user" => new AdminResource(
                 $this->authAdminService->forgetPassword($request)
             )]

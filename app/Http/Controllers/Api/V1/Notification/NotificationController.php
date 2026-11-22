@@ -22,9 +22,17 @@ class NotificationController extends Controller
 
     public function __construct(protected UserContract $userRepository)
     {
-        $this->middleware(['role_or_permission:notifications-index|' . activeGuard()])->only(['__invoke', 'index']);
+   /*      $this->middleware(['role_or_permission:notifications-index|' . activeGuard()])->only(['__invoke', 'index']);
         $this->middleware(['role_or_permission:notifications-create|' . activeGuard()])->only('store');
-    }
+    */ 
+        
+        $this->middleware('permission:notifications-index,api')
+    ->only(['__invoke', 'index']);
+
+$this->middleware('permission:notifications-create,api')
+    ->only('store');
+        
+        }
 
     public function index(Request $request): mixed
     {

@@ -1,11 +1,28 @@
 <?php
 
-
-use App\Http\Controllers\Api\V1\Dashboard\{PermissionController, RoleController, AuthController, CityController, ProviderRequestController, SettingController, UserController};
+use App\Http\Controllers\Api\V1\AIChatController;
+use App\Http\Controllers\Api\V1\Dashboard\OrderController;
+use App\Http\Controllers\Api\V1\Dashboard\ActivityHistoryController;
+use App\Http\Controllers\Api\V1\Dashboard\AssistantController;
+use App\Http\Controllers\Api\V1\Dashboard\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
+use App\Http\Controllers\Api\V1\Dashboard\CombinedReportController;
 use App\Http\Controllers\Api\V1\Dashboard\LocationController;
+use App\Http\Controllers\Api\V1\Dashboard\PermissionController;
+use App\Http\Controllers\Api\V1\Dashboard\ProjectController;
 use App\Http\Controllers\Api\V1\Dashboard\ResourceController;
+use App\Http\Controllers\Api\V1\Dashboard\RoleController;
+use App\Http\Controllers\Api\V1\Dashboard\SettingController;
+use App\Http\Controllers\Api\V1\Dashboard\SiteController;
+use App\Http\Controllers\Api\V1\Dashboard\SupplierController;
+use App\Http\Controllers\Api\V1\Dashboard\UnitController;
+use App\Http\Controllers\Api\V1\Dashboard\UserController;
+use App\Http\Controllers\Api\V1\GeneralController;
+use App\Models\Project;
+use App\Models\User;
+use App\Notifications\UserNotification;
 use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -17,12 +34,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix("auth")->group(function () {
-    Route::middleware(["auth:api"])->group(function () {
+Route::prefix('auth')->group(function () {
+    Route::middleware(['auth:api'])->group(function () {
         Route::post('resend-otp', [AuthController::class, 'resendOTP']);
-        Route::post('verify-otp', [AuthController::class, 'verifyOTP']);
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('profile', [AuthController::class, 'profile']);
+        Route::post('login-as/{user}', [AuthController::class, 'loginAs'])->middleware('admin');
         Route::post('changpassword', [AuthController::class, 'changePassword']);
         Route::post('reset-password', [AuthController::class, 'resetPassword']);
         Route::delete('delete-account', [AuthController::class, 'deleteAccount']);
@@ -30,37 +47,153 @@ Route::prefix("auth")->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('forget-password', [AuthController::class, 'forgetPassword']);
     Route::post('send-otp', [AuthController::class, 'sendOTP']);
+    Route::post('register', [AuthController::class, 'register']);
+
+    Route::post('verify-otp', [AuthController::class, 'verifyOTP']);
+
 });
 
+Route::middleware(['auth:api'])->group(function () {
 
-Route::middleware(["auth:api"])->group(function () {
-    # Roles
+    Route::post('admin/assistant/ask', [AssistantController::class, 'ask']);
+
+    // AI Chat
+    Route::prefix('ai/chat')->group(function () {
+        Route::post('/', [AIChatController::class, 'sendMessage']);
+        Route::post('conversations', [AIChatController::class, 'createConversation']);
+        Route::get('conversations', [AIChatController::class, 'listConversations']);
+        Route::get('conversations/{id}', [AIChatController::class, 'getConversation']);
+        Route::delete('conversations/{id}', [AIChatController::class, 'deleteConversation']);
+        Route::patch('conversations/{id}', [AIChatController::class, 'renameConversation']);
+        Route::delete('conversations/{id}/messages', [AIChatController::class, 'clearMessages']);
+    });
+
+    Route::get('history', [ActivityHistoryController::class, 'index']);
+
+    // Roles
     Route::apiResource('roles', RoleController::class);
 
-    #Locations 
+    // Locations
+    Route::get('active-locations', [LocationController::class, 'active']);
     Route::apiResource('locations', LocationController::class);
+    Route::get('locations/{location}/toggle-active', [LocationController::class, 'toggleActive']);
 
-    #Resource
+    // Sites
+    Route::match(['get', 'post'], 'used-materials', [SiteController::class, 'usedMaterials']);
+    Route::post('update-report-site' , [SiteController::class,'updateReportToSite']);
+    Route::get('get-daily-reports' , [SiteController::class, 'getDailySiteReports']);
+    Route::match(['get', 'post'], 'sites-with-reports', [SiteController::class, 'sitesWithReports']);
+    Route::match(['get', 'post'], 'sites/{site}/with-reports', [SiteController::class, 'sitesWithReports']);
+    Route::post('reports-and-problems/by-date', [SiteController::class, 'reportsAndProblemsByDate']);
+    Route::post('sites/{site}/problems', [SiteController::class, 'addProblemToSite']);
+    Route::get('sites/{site}/problems', [SiteController::class, 'siteProblems']);
+    Route::delete('sites/{site}/problems/{problem}', [SiteController::class, 'deleteSiteProblem']);
+    Route::delete('sites/{site}/problems', [SiteController::class, 'deleteSiteProblem']);
+    Route::delete('site-problems/{problem}', [SiteController::class, 'deleteSiteProblem']);
+    Route::delete('problems/{problem}', [SiteController::class, 'deleteSiteProblem']);
+    Route::patch('site-problems/{problem}/status', [SiteController::class, 'updateSiteProblemStatus']);
+    Route::delete('reports/{site}/by-date', [SiteController::class, 'deleteReportsByDate']);
+    Route::delete('reports/{site}/by-date-and-type', [SiteController::class, 'deleteReportsByDateAndType']);
+    Route::delete('reports/{site}/by-date-type-and-user', [SiteController::class, 'deleteReportsByDateTypeAndUser']);
+    Route::get('reports/{report}', [SiteController::class, 'showReport']);
+    Route::delete('reports/{report}', [SiteController::class, 'deleteReport']);
+    Route::apiResource('sites', SiteController::class);
+    Route::post('addUserToSite', [SiteController::class, 'addUserToSite']);
+    Route::delete('removeUserFromSite', [SiteController::class, 'removeUserFromSite']);
+    Route::patch('sites/{site}/status', [SiteController::class, 'updateStatus'])->middleware('admin');
+    Route::patch('sites/{site}/durationExpand', [SiteController::class, 'durationExpand'])->middleware('admin');
+    // add report to site
+
+    Route::post('addReportToSite', [SiteController::class, 'addReportToSite']);
+
+    // Combined reports
+    Route::post('combined-reports', [CombinedReportController::class, 'store']);
+    Route::get('combined-reports', [CombinedReportController::class, 'index']);
+    Route::get('combined-reports/{combinedReport}', [CombinedReportController::class, 'show']);
+    Route::delete('combined-reports/{combinedReport}', [CombinedReportController::class, 'destroy']);
+    Route::get('sites/{site}/combined-reports', [CombinedReportController::class, 'siteIndex']);
+    
+    // Resource
     Route::apiResource('resources', ResourceController::class);
     Route::get('resources/{resource}/prices', [ResourceController::class, 'getPrices']);
+    Route::get('resources/{resource}/toggle', [ResourceController::class, 'toggleActive']);
+    Route::get('my-prices', [ResourceController::class, 'myPrices']);
+
     Route::post('resources/{resource}/prices', [ResourceController::class, 'storePrices']);
 
-    # Categories
+    // Categories
     Route::apiResource('categories', CategoryController::class);
-    # Permission
+    // Permission
     Route::get('permissions', PermissionController::class);
 
- 
-    # Setting
+    // Setting
     Route::apiResource('settings', SettingController::class);
 
-    # Users
+    // Users
     Route::apiResource('users', UserController::class);
 
-    # Provider Requests 
-    # Chat
-    include __DIR__ . '/chat.php';
+    Route::get("getUser/{role}", [UserController::class, 'getUsersByRole']);
 
-    # Notification
-    include __DIR__ . '/notification.php';
+    // Admins
+    Route::apiResource('admins', UserController::class);
+
+    
+    Route::get('admins/{admin}/status/{status}', [UserController::class, 'changeStatus']);
+    // Provider Requests
+    // Chat
+
+    // Projects
+    Route::apiResource('projects', ProjectController::class);
+    Route::post('projects/{project}/copy', [ProjectController::class, 'copy']);
+    Route::post('projects/{project}/resource', [ProjectController::class, 'addResource']);
+    Route::delete('projects/{project}/resources/{resourceId}', [ProjectController::class, 'destroyResource']);
+    Route::get('all-projects', [ProjectController::class, 'all']);
+    Route::post('projects/{project}/assign', [ProjectController::class, 'addAssignee']);
+    Route::post('projects/{project}/status', [ProjectController::class, 'updateStatus']);
+    Route::post('projects/{project}/reopen', [ProjectController::class, 'reopen']);
+    Route::post('projects/{item}/add-note', [ProjectController::class, 'addNote']);
+    // Units
+    Route::get('active-units', [UnitController::class, 'active']);
+    Route::apiResource('units', UnitController::class);
+
+    Route::get('units/{unit}/toggle-active', [UnitController::class, 'toggleActive']);
+
+    Route::get('home', [GeneralController::class, 'home']);
+
+    // Suppliers
+    Route::get('active-suppliers', [SupplierController::class, 'active']);
+    Route::apiResource('suppliers', SupplierController::class);
+    Route::get('suppliers/{supplier}/toggle-active', [SupplierController::class, 'toggleActive']);
+    Route::get('send-notification', function () {
+        $user = User::find(1);
+        $project = Project::find(50);
+        $data = [
+            'title' => [
+                'en' => ' Request ',
+                'ar' => 'طلب   ',
+            ],
+            'body' => [
+                'en' => 'gg',
+                'ar' => 'ق',
+            ],
+            'id' => $project->id,
+            'type' => class_basename($project),
+            'serial' => null,
+        ];
+
+        $user->notify(new UserNotification($data));
+
+    });
+
+    #order routes
+    Route::get('orderStatics' , [orderController::class , 'orderStatics']);
+    Route::apiResource('orders', OrderController::class);
+    Route::get('myOrders', [OrderController::class, 'getMyOrders']);
+    Route::post("orders/{order_item_id}/order-item-status", [OrderController::class, 'updateOrderItemStatus']);
+    Route::put('orders/{order_item}/order-items', [OrderController::class, 'updateOrderItem']);
+    Route::delete('order-items/{order_item}', [OrderController::class, 'deleteOrderItem']);
+    include __DIR__.'/chat.php';
+
+    // Notification
+    include __DIR__.'/notification.php';
 });

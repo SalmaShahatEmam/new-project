@@ -8,21 +8,26 @@ use App\Http\Requests\Api\Auth\ChangePasswordRequest;
 use App\Http\Requests\Api\Auth\ResetPasswordRequest;
 use App\Http\Requests\Api\Auth\SendOTPRequest;
 use App\Http\Requests\Api\Auth\VerifyOTPRequest;
+use App\Http\Resources\Api\Auth\AdminResource;
+use App\Mail\OTPMail;
 use App\Models\AuthenticatableOtp;
+use App\Models\User;
 use App\Traits\ApiResponseTrait;
-use Illuminate\Foundation\Auth\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\PersonalAccessToken;
+use phpDocumentor\Reflection\Types\True_;
 
 abstract class AuthAbstract
 {
     use ApiResponseTrait;
 
     protected bool $loginRequireSendOTP;
+
     public $model;
 
     public function __construct(User $model)
@@ -38,17 +43,19 @@ abstract class AuthAbstract
     {
         $request->authenticate();
         $user = $request->user();
-        # TODO handel Cloud messaging
+        // TODO handel Cloud messaging
         $accessToken = $user->createToken('snctumToken', $abilities ?? [], now()->addMonths(3))->plainTextToken;
 
         if ($this->loginRequireSendOTP) {
             tap($user)->update([
-                'email_verified_at' => NULL,
+                'email_verified_at' => null,
             ])->fresh();
             $user->access_token = $accessToken;
+
             return $this->handelOTPMethod($user);
         }
         $user->access_token = $accessToken;
+
         return $user;
     }
 
@@ -56,44 +63,47 @@ abstract class AuthAbstract
     {
         $user = $request->user();
         $user->update($request->only(['name', 'email', 'nationalId']));
+
         return $user;
     }
+
     public function sendOTP(SendOTPRequest $request)
     {
         $user = $this->model::query()->whereMobile($request->mobile)->first();
         $user->access_token = $request->bearerToken();
+
         return $this->handelOTPMethod($user);
     }
-
 
     public function updateProfile($request)
     {
         $user = $request->user();
         $user->update($request->only(['email', 'city_id']));
+
         return $user;
     }
+
     public function resendOTP(Request $request)
     {
         $user = $request->user();
         $user->access_token = $request->bearerToken();
+
         return $this->handelOTPMethod($user);
     }
 
     /**
      * verify OTP.
-     *
-     * @return JsonResponse
      */
-
     public function mobileVerifyOTP(VerifyOTPRequest $request): JsonResponse
     {
         $user = $request->user()->loadMissing('latestOTPToken');
-        if (is_null($user->latestOTPToken))
-            return $this->respondWithSuccess(__("Failed Operation"));
+        if (is_null($user->latestOTPToken)) {
+            return $this->respondWithSuccess(__('Failed Operation'));
+        }
 
         if ($request->code != $user->latestOTPToken->code) {
-            return $this->setStatusCode(422)->respondWithError(__("Code Not Matched"),
-                errors: ["code" => [__("Code Not Matched")]]);
+            return $this->setStatusCode(422)->respondWithError(__('Code Not Matched'),
+                errors: ['code' => [__('Code Not Matched')]]);
         }
 
         if ($user->latestOTPToken?->isValid()) {
@@ -105,20 +115,24 @@ abstract class AuthAbstract
                 'mobile_change' => null,
             ])->fresh();
 
-            return $this->respondWithSuccess(__("otp-sucess"));
+            return $this->respondWithSuccess(__('otp-sucess'));
         }
-        return $this->setStatusCode(422)->respondWithError(__("Code Expired"),
-            errors: ["code" => [__("Code Expired")]]);
+
+        return $this->setStatusCode(422)->respondWithError(__('Code Expired'),
+            errors: ['code' => [__('Code Expired')]]);
     }
+
     public function verifyOTP(VerifyOTPRequest $request): JsonResponse
     {
-        $user = $request->user()->loadMissing('latestOTPToken');
-        if (is_null($user->latestOTPToken))
-            return $this->respondWithSuccess(__("Failed Operation"));
+        $user = User::where('email' , $request->email)->first();
+        $user->loadMissing('latestOTPToken');
+        if (is_null($user->latestOTPToken)) {
+            return $this->respondWithSuccess(__('Failed Operation'));
+        }
 
         if ($request->code != $user->latestOTPToken->code) {
-            return $this->setStatusCode(422)->respondWithError(__("Code Not Matched"),
-                errors: ["code" => [__("Code Not Matched")]]);
+            return $this->setStatusCode(422)->respondWithError(__('Code Not Matched'),
+                errors: ['code' => [__('Code Not Matched')]]);
         }
 
         if ($user->latestOTPToken?->isValid()) {
@@ -128,12 +142,19 @@ abstract class AuthAbstract
             $user->update([
                 'email_verified_at' => now(),
             ]);
+        $user->access_token = is_null($user->currentAccessToken()) ? $user->createToken('snctumToken', $abilities ?? [], now()->addHours(1))->plainTextToken : $user->currentAccessToken();
 
-            //TODO : send request to admin to approve and notification to admin 
-            return $this->respondWithSuccess(__("otp-sucess"));
+            // TODO : send request to admin to approve and notification to admin
+
+            return $this->respondWithSuccess(
+           __('otp-sucess'),
+            ["user" => new AdminResource($user)]
+        );
+            //return $this->respondWithSuccess(__('otp-sucess'));
         }
-        return $this->setStatusCode(422)->respondWithError(__("Code Expired"),
-            errors: ["code" => [__("Code Expired")]]);
+
+        return $this->setStatusCode(422)->respondWithError(__('Code Expired'),
+            errors: ['code' => [__('Code Expired')]]);
     }
 
     /**
@@ -145,16 +166,15 @@ abstract class AuthAbstract
     {
         $user = $this->model::whereMobile($request->mobile)->first();
         tap($user)->update([
-            'email_verified_at' => NULL,
+            'email_verified_at' => null,
         ])->fresh();
         $user->access_token = is_null($user->currentAccessToken()) ? $user->createToken('snctumToken', $abilities ?? [], now()->addHours(1))->plainTextToken : $user->currentAccessToken();
+
         return $this->handelOTPMethod($user);
     }
 
     /**
      * change password
-     *
-     * @return JsonResponse
      */
     public function changePassword(ChangePasswordRequest $request, $abilities = null): JsonResponse
     {
@@ -167,21 +187,20 @@ abstract class AuthAbstract
             $user->currentAccessToken()->delete();
 
             $user->access_token = $user->createToken('snctumToken', $abilities ?? [], now()->addMonths(3))->plainTextToken;
-            return $this->respondWithArray(array("access_token" => $user->access_token, 'message' => __('Password Changed Successfully')));
+
+            return $this->respondWithArray(['access_token' => $user->access_token, 'message' => __('Password Changed Successfully')]);
         } else {
-            return $this->setStatusCode(422)->respondWithError(__("Current Password Wrong"));
+            return $this->setStatusCode(422)->respondWithError(__('Current Password Wrong'));
         }
     }
 
-  /*   public function providerRegister($data)
-    {
-        $data["type"
-    } */
+    /*   public function providerRegister($data)
+      {
+          $data["type"
+      } */
 
     /**
      * reset password.
-     *
-     * @return JsonResponse
      */
     public function resetPassword(ResetPasswordRequest $request, $abilities = null): JsonResponse
     {
@@ -190,15 +209,14 @@ abstract class AuthAbstract
         $user->save();
         $user->currentAccessToken()->delete();
         $user->access_token = $user->createToken('snctumToken', $abilities ?? [], now()->addMonths(3))->plainTextToken;
-        return $this->respondWithArray(array("access_token" => $user->access_token, 'message' => __('Password Reset Successfully')));
-    }
 
+        return $this->respondWithArray(['access_token' => $user->access_token, 'message' => __('Password Reset Successfully')]);
+    }
 
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
     }
-
 
     /**
      * change user mobile.
@@ -212,6 +230,7 @@ abstract class AuthAbstract
             'mobile_change' => $request->mobile,
         ])->fresh();
         $user->access_token = $request->bearerToken();
+
         return $this->handelOTPMethod($user);
     }
 
@@ -219,7 +238,6 @@ abstract class AuthAbstract
     {
         return $request->user();
     }
-
 
     protected function handelMobileOTP($user)
     {
@@ -230,64 +248,53 @@ abstract class AuthAbstract
         if (in_array($user->mobile, $fixedOTPNumbers)) {
             $fixedOTP = true;
         }
-        $user->OTP = $fixedOTP ? "1234" : randomCode(4, 1);
-        $message = __("otp_message", ['code' => $user->OTP]);
+        $user->OTP = $fixedOTP ? '1234' : randomCode(4, 1);
+        $message = __('otp_message', ['code' => $user->OTP]);
         $flag = sendSMS($message, $user->mobile);
         $user->sms = $flag;
         $user->OTPTokens()->save(new AuthenticatableOtp([
             'code' => $user->OTP,
         ]));
+
         return $user;
     }
 
     protected function handelMailOTP($user)
     {
-       
+      
         $user->loadMissing('latestOTPToken');
-        $fixedOTPMails = json_decode(Storage::disk('local')->get('fixed_otp_emails.json'), true);
-        $sendMail = false;
-        $createRecord = false;
-        $fixedOTP = true;
+        $sendMail = true;
+        $createRecord = true;
 
-        if (!is_null($fixedOTPMails) && in_array($user->email, $fixedOTPMails)) {
-            $fixedOTP = true;
-        }
-
-
-        if (is_null($user->latestOTPToken) || !$user->latestOTPToken->isValid()) {
-            $user->OTP = $fixedOTP ? "1234" : randomCode(4, 1);
+        if (is_null($user->latestOTPToken) || ! $user->latestOTPToken->isValid()) {
+        $user->OTP = randomCode(4, 1);
             $sendMail = true;
             $createRecord = true;
         } else {
+         
             $user->OTP = $user->latestOTPToken?->code;
-            $sendMail = true;
+            $sendMail = True;
         }
 
-
         if ($sendMail) {
-            $user->mailed = sendOtpMail($user->OTP, $user->email);
+            $user->mailed = Mail::to($user->email)
+            ->sendNow(new OTPMail($user->OTP));
             if ($createRecord && $user->mailed) {
                 $user->OTPTokens()->save(new AuthenticatableOtp([
                     'code' => $user->OTP,
                 ]));
             }
         }
-  $user->OTPTokens()->save(new AuthenticatableOtp([
-                    'code' => $user->OTP,
-                ]));
+
         return $user;
     }
 
     protected function handelOTPMethod($user)
     {
-       
-        $token = PersonalAccessToken::findToken($user->access_token); 
-      
-       if (is_null($token)) {
-   
-            return false;
-        } 
-        return $user->type == UserTypeEnum::ADMIN ? $this->handelMailOTP($user) : $this->handelMobileOTP($user);
+
+  
+
+        return $user->type == UserTypeEnum::ADMIN ? $this->handelMailOTP($user) : $this->handelMailOTP($user);
     }
 
     public function deleteAccount(Request $request)

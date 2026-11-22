@@ -7,11 +7,13 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Schema;
 class PermissionSeeder extends Seeder
 {
     protected static mixed $abilities;
+
     protected static mixed $models;
+
     protected static mixed $permissions;
 
     /**
@@ -19,40 +21,65 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('roles')->truncate();
+       /*  DB::table('roles')->truncate();
         DB::table('permissions')->truncate();
         DB::table('role_has_permissions')->truncate();
         DB::table('model_has_roles')->truncate();
         DB::table('model_has_permissions')->truncate();
 
         $this->defaultPermissions();
+        $this->syncAdminRole(); */
+
+         Schema::disableForeignKeyConstraints();
+
+    try {
+        DB::table('model_has_permissions')->truncate();
+      //  DB::table('model_has_roles')->truncate();
+        DB::table('role_has_permissions')->truncate();
+        DB::table('permissions')->truncate();
+      //  DB::table('roles')->truncate();
+
+        $this->defaultPermissions();
         $this->syncAdminRole();
+    } finally {
+        Schema::enableForeignKeyConstraints();
+    }
     }
 
     public function defaultPermissions(): void
     {
-        $this->adminRole(new RolesPermissionGenerator());
+        $this->adminRole(new RolesPermissionGenerator);
     }
 
     private function adminRole($rolesPermissionGenerator): void
     {
-        # Models
+        // Models
         $adminModels = [
-            'users', 'roles', 'permissions', 'notifications','settings' , "cities"
+            'users', 'roles', 'permissions', 'notifications', 'settings',  'resources', 
+            'categories', 'projects',
+            "locations"  , "suppliers" , "units"
         ];
-        # Default Methods
+
+    
+
+
+        // Default Methods
         $methods = ['index', 'create', 'edit', 'delete', 'show', 'activate'];
-        # Additional Permissions
+        // Additional Permissions
         $additionalAdminPermissions = [];
-        # Generate
-        $adminRole = Role::firstOrCreate([
-            'name' => [
-                'ar' => __('permissions.responses.roles-models.admin', [], 'ar'),
-                'en' => __('permissions.responses.roles-models.admin', [], 'en')
+        // Generate
+        $adminRole = Role::updateOrCreate(
+            [
+                'guard_name' => 'api',
+                'slug' => 'admin',
             ],
-            'guard_name' => 'api',
-            'slug' => 'admin'
-        ]);
+            [
+                'name' => [
+                    'ar' => __('permissions.responses.roles-models.admin', [], 'ar'),
+                    'en' => __('permissions.responses.roles-models.admin', [], 'en'),
+                ],
+            ]
+        );
         $adminRole->syncPermissions(
             $rolesPermissionGenerator->handle(
                 $adminModels,
@@ -65,10 +92,14 @@ class PermissionSeeder extends Seeder
 
     private function syncAdminRole(): void
     {
+        $adminRole = Role::where('slug', 'admin')
+            ->where('guard_name', 'api')
+            ->firstOrFail();
+
         User::whereRelation('roles', 'slug', 'LIKE', 'admin')
             ->get()
-            ->each(function ($user) {
-                $user->syncRoles([1]);
+            ->each(function ($user) use ($adminRole) {
+                $user->syncRoles($adminRole);
             });
     }
 }
