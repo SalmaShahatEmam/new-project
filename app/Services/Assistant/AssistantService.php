@@ -31,6 +31,7 @@ class AssistantService
         $apiKey = config('services.assistant.api_key');
         $model = config('services.assistant.model');
 
+
         if (! $apiKey || ! $model) {
             throw new RuntimeException('Assistant provider is not configured.');
         }
@@ -158,7 +159,7 @@ class AssistantService
             ->acceptJson()
             ->timeout((int) config('services.assistant.timeout', 45))
             ->post(rtrim(config('services.assistant.base_url'), '/') . '/chat/completions', $payload);
-
+dd($payload, $response->status(), $response->body());
         if (! $response->successful()) {
             throw new RuntimeException('Assistant provider returned HTTP ' . $response->status() . '.');
         }

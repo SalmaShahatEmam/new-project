@@ -29,21 +29,26 @@ class OrderRequest extends FormRequest
             'sections' => ['nullable', 'in:labour,equipment,materials,subcontractors'],
             'items' => ['required', 'array'],
             'items.*' => ['required', 'array'],
+            'items.*.id' => ['nullable', 'integer', Rule::exists('order_items', 'id')],
             'items.*.BOQ_item' => ['required_without:items.*.boq_item', 'nullable', 'string'],
             'items.*.boq_item' => ['required_without:items.*.BOQ_item', 'nullable', 'string'],
             'items.*.resource_id' => ['required', 'integer', 'exists:resources,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.reason' => ['nullable', 'string'],
             'items.*.site_id' => ['nullable', 'integer', 'exists:sites,id'],
-            'items.*.status' => ['nullable', Rule::enum(OrderItemStatusEnum::class)],
             'items.*.priority' => ['required', Rule::enum(OrderItemPriorityEnum::class)],
             'items.*.delivery_date' => ['required', 'date', 'after_or_equal:today'],
             'items.*.notes' => ['nullable', 'string'],
         ];
-        if($this->getMethod() == "POST")
+        if ($this->getMethod() === 'POST') {
+            $rules['items.*.status'] = ['nullable', Rule::enum(OrderItemStatusEnum::class)];
+
             return $this->postRules($rules);
-        elseif($this->getMethod() == "PUT" || $this->getMethod() == "PATCH" )
+        } elseif ($this->getMethod() === 'PUT' || $this->getMethod() === 'PATCH') {
             return $this->putPatchRules($rules);
+        }
+
+        return [];
     }
 
     public function attributes(): array
@@ -88,14 +93,15 @@ class OrderRequest extends FormRequest
 
         return scribe_fluent()
             ->parameter('sections', 'string, optional. Order sections or departments.', 'Electrical')
-            ->parameter('items', 'array, required. Example rows use fake data; resource_id and site_id must match existing records. Each row requires a BOQ item, resource, quantity, priority, and a delivery date today or later.', $itemsExample)
+            ->parameter('items', 'array, required. On order updates, include id for existing items and omit id for new items. Omitted non-approved items are deleted. Approved items are always preserved; submitted changes to them are ignored. Status is server-managed during updates. Example rows use fake data; resource_id and site_id must match existing records. Each row requires a BOQ item, resource, quantity, priority, and a delivery date today or later.', $itemsExample)
+            ->parameter('items.*.id', 'integer, optional. Existing order item ID when updating an item; omit for a new item.', '12')
             ->parameter('items.*.resource_id', 'integer, required. Existing resource ID.', '1')
             ->parameter('items.*.quantity', 'integer, required. Requested quantity (minimum 1).', '3')
             ->parameter('items.*.site_id', 'integer, optional. Existing site ID.', '2')
             ->parameter('items.*.BOQ_item', 'string, required if boq_item is not provided. BOQ item value supplied by the user.', 'BOQ-001')
             ->parameter('items.*.boq_item', 'string, required if BOQ_item is not provided. BOQ item value supplied by the user.', 'BOQ-001')
             ->parameter('items.*.reason', 'string, optional. Reason for the request.', 'Required for site work')
-            ->parameter('items.*.status', 'string, optional. Defaults to unapproved. One of: unapproved, approved, rejected, returned_for_revision.', 'unapproved')
+            ->parameter('items.*.status', 'string, optional on order creation; defaults to unapproved. Ignored during order updates because item status is server-managed. One of: unapproved, approved, rejected, returned_for_revision.', 'unapproved')
             ->parameter('items.*.priority', 'string, required. Priority selected by the user. One of: normal, urgent, very_urgent.', 'urgent')
             ->parameter('items.*.delivery_date', 'date, required. Requested delivery date must be today or a future date (YYYY-MM-DD).', $deliveryDate)
             ->parameter('items.*.notes', 'string, optional. Additional notes.', 'Deliver to site')

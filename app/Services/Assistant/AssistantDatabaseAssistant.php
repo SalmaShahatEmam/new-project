@@ -37,6 +37,7 @@ class AssistantDatabaseAssistant
 
     public function isDatabaseQuestion(string $question): bool
     {
+
         $text = mb_strtolower($question);
         if (preg_match('/(فين كود|الكود|ملف|function|method|class|كيف يعمل|إزاي بيتحسب|ازاي بيتحسب|طريقة حساب)/u', $text)) {
             return false;
@@ -63,6 +64,7 @@ class AssistantDatabaseAssistant
             ],
             ['role' => 'user', 'content' => $question],
         ], $tools);
+
 
         $toolCall = data_get($selection, 'choices.0.message.tool_calls.0');
         $toolName = data_get($toolCall, 'function.name');
@@ -102,6 +104,7 @@ class AssistantDatabaseAssistant
             throw new RuntimeException('Assistant provider returned an empty answer.');
         }
 
+        dd($answer);
         return ['answer' => trim($answer), 'sources' => []];
     }
 
@@ -269,6 +272,19 @@ class AssistantDatabaseAssistant
 
     private function tool(string $name, string $description, array $properties): array
     {
+        $normalizedProperties = [];
+        foreach ($properties as $key => $schema) {
+            if (isset($schema['type'])) {
+                $type = $schema['type'];
+                if (is_string($type)) {
+                    $schema['type'] = [$type, 'null'];
+                } elseif (is_array($type) && ! in_array('null', $type, true)) {
+                    $schema['type'][] = 'null';
+                }
+            }
+            $normalizedProperties[$key] = $schema;
+        }
+
         return [
             'type' => 'function',
             'function' => [
@@ -276,7 +292,7 @@ class AssistantDatabaseAssistant
                 'description' => $description,
                 'parameters' => [
                     'type' => 'object',
-                    'properties' => (object) $properties,
+                    'properties' => (object) $normalizedProperties,
                     'required' => [],
                     'additionalProperties' => false,
                 ],
@@ -902,8 +918,10 @@ class AssistantDatabaseAssistant
             ->timeout((int) config('services.assistant.timeout', 45))
             ->post(rtrim(config('services.assistant.base_url'), '/') . '/chat/completions', $payload);
 
+    //    dd($payload, $response->status(), $response->body());
+
         if (! $response->successful()) {
-            throw new RuntimeException('Assistant provider returned HTTP ' . $response->status() . '.');
+            throw new RuntimeException('Assistant provider returned HTTP ' . $response->status() . ': ' . $response->body());
         }
 
         return $response->json();

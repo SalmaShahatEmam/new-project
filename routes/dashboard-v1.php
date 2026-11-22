@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AIChatController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController;
 use App\Http\Controllers\Api\V1\Dashboard\ActivityHistoryController;
 use App\Http\Controllers\Api\V1\Dashboard\AssistantController;
@@ -55,6 +56,17 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth:api'])->group(function () {
 
     Route::post('admin/assistant/ask', [AssistantController::class, 'ask']);
+
+    // AI Chat
+    Route::prefix('ai/chat')->group(function () {
+        Route::post('/', [AIChatController::class, 'sendMessage']);
+        Route::post('conversations', [AIChatController::class, 'createConversation']);
+        Route::get('conversations', [AIChatController::class, 'listConversations']);
+        Route::get('conversations/{id}', [AIChatController::class, 'getConversation']);
+        Route::delete('conversations/{id}', [AIChatController::class, 'deleteConversation']);
+        Route::patch('conversations/{id}', [AIChatController::class, 'renameConversation']);
+        Route::delete('conversations/{id}/messages', [AIChatController::class, 'clearMessages']);
+    });
 
     Route::get('history', [ActivityHistoryController::class, 'index']);
 
@@ -172,7 +184,6 @@ Route::middleware(['auth:api'])->group(function () {
         $user->notify(new UserNotification($data));
 
     });
-
 
     #order routes
     Route::get('orderStatics' , [orderController::class , 'orderStatics']);

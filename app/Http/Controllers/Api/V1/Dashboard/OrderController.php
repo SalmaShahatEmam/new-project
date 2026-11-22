@@ -9,10 +9,12 @@ use App\Http\Resources\Api\Dashboard\OrderResource;
 use App\Models\Order;
 use App\Models\OrderItems;
 use App\Models\Resource;
+use App\Models\resourcePrice;
 use App\Repositories\Contracts\OrderContract;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
@@ -64,15 +66,7 @@ class OrderController extends BaseApiController
 
             foreach ($validated['items'] ?? [] as $itemData) {
                 $resource = Resource::query()->findOrFail($itemData['resource_id']);
-
-                $latestResourcePrice = $resource->resourcePrices()
-                    ->orderByDesc('effective_date')
-                    ->orderByDesc('id')
-                    ->first();
-
-                if (! $latestResourcePrice) {
-                    throw new \RuntimeException(__('No price history found for resource #:resource_id', ['resource_id' => $resource->id]));
-                }
+                $latestResourcePrice = $this->getLatestResourcePrice($resource);
 
                 $order->items()->create([
                     'boq_item' => $itemData['BOQ_item'] ?? $itemData['boq_item'] ?? null,
@@ -134,8 +128,92 @@ class OrderController extends BaseApiController
      */
     public function update(OrderRequest $request, Order $Order): JsonResponse
     {
-        $Order = $this->repository->update($Order, $request->all());
-        return $this->respondWithSuccess(__('Order updated successfully'), [
+        $validated = $request->validated();
+
+        $Order = DB::transaction(function () use ($Order, $validated) {
+            $order = Order::query()->whereKey($Order->id)->lockForUpdate()->firstOrFail();
+            $items = $validated['items'];
+            $existingItems = $order->items()->lockForUpdate()->get()->keyBy('id');
+            $submittedIds = collect($items)
+                ->pluck('id')
+                ->filter(fn ($id) => $id !== null)
+                ->map(fn ($id) => (int) $id);
+
+            if ($submittedIds->count() !== $submittedIds->unique()->count()) {
+                throw ValidationException::withMessages([
+                    'items' => __('An order item can only appear once in the submitted list.'),
+                ]);
+            }
+
+            foreach ($submittedIds as $itemId) {
+                if (! $existingItems->has($itemId)) {
+                    throw ValidationException::withMessages([
+                        'items' => __('Order item #:id does not belong to this order.', ['id' => $itemId]),
+                    ]);
+                }
+            }
+
+            if (array_key_exists('sections', $validated)) {
+                $order = $this->repository->update($order, ['sections' => $validated['sections']]);
+            }
+
+            foreach ($items as $itemData) {
+                $attributes = $this->orderItemAttributes($itemData);
+                $itemId = $itemData['id'] ?? null;
+
+                if ($itemId === null) {
+                    $resource = Resource::query()->findOrFail($attributes['resource_id']);
+                    $price = $this->getLatestResourcePrice($resource);
+
+                    $order->items()->create($attributes + [
+                        'price' => $price->price,
+                        'tax' => $price->tax_value ?? 0,
+                        'status' => OrderItemStatusEnum::UNAPPROVED->value,
+                    ]);
+
+                    continue;
+                }
+
+                $orderItem = $existingItems->get((int) $itemId);
+                if ($orderItem->status === OrderItemStatusEnum::APPROVED) {
+                    continue;
+                }
+
+                if (! $this->orderItemHasChanges($orderItem, $attributes)) {
+                    continue;
+                }
+
+                if ((int) $orderItem->resource_id !== $attributes['resource_id']) {
+                    $resource = Resource::query()->findOrFail($attributes['resource_id']);
+                    $price = $this->getLatestResourcePrice($resource);
+                    $attributes['price'] = $price->price;
+                    $attributes['tax'] = $price->tax_value ?? 0;
+                }
+
+                $orderItem->update($attributes + [
+                    'status' => OrderItemStatusEnum::UNAPPROVED->value,
+                    'status_change_date' => now(),
+                ]);
+            }
+
+            foreach ($existingItems as $itemId => $orderItem) {
+                if ($submittedIds->contains((int) $itemId)) {
+                    continue;
+                }
+
+                if ($orderItem->status === OrderItemStatusEnum::APPROVED) {
+                    continue;
+                }
+
+                $orderItem->delete();
+            }
+
+            $order->syncStatusFromItems();
+
+            return $order->load(['user', 'items.resource', 'items.site']);
+        });
+
+        return $this->respondWithSuccess(__('Order updated successfully , approved items can not be changed'), [
             'Order' => (new OrderResource($Order)),
         ]);
     }
@@ -202,8 +280,8 @@ class OrderController extends BaseApiController
     {
         $orderItem = OrderItems::query()->findOrFail($orderItemId);
 
-        if ($orderItem->status === OrderItemStatusEnum::APPROVED->value) {
-            return $this->respondWithError(__('Cannot delete an approved order item'), 400);
+        if ($orderItem->status === OrderItemStatusEnum::APPROVED) {
+            return $this->respondWithError(__('Cannot delete an approved order item'));
         }
 
         $orderItem->delete();
@@ -226,8 +304,10 @@ class OrderController extends BaseApiController
 
         $orderItem = OrderItems::query()->findOrFail($orderItemId);
 
-        if ($orderItem->status === OrderItemStatusEnum::APPROVED->value) {
-            return $this->respondWithError(__('Cannot update an approved order item'), 400);
+        if ($orderItem->status === OrderItemStatusEnum::APPROVED) {
+            return $this->respondWithError(__('Approved order item :name cannot be changed.', [
+                'name' => $this->getOrderItemResourceName($orderItem),
+            ]));
         }
 
         $orderItem->update($validated);
@@ -241,5 +321,58 @@ class OrderController extends BaseApiController
         return $this->respondWithSuccess(__('Order item updated successfully'), [
             'OrderItem' => $orderItem,
         ]);
+    }
+
+    private function orderItemAttributes(array $itemData): array
+    {
+        return [
+            'boq_item' => $itemData['BOQ_item'] ?? $itemData['boq_item'] ?? null,
+            'resource_id' => (int) $itemData['resource_id'],
+            'site_id' => isset($itemData['site_id']) ? (int) $itemData['site_id'] : null,
+            'quantity' => (int) $itemData['quantity'],
+            'reason' => $itemData['reason'] ?? null,
+            'priority' => $itemData['priority'],
+            'delivery_date' => $itemData['delivery_date'],
+            'notes' => $itemData['notes'] ?? null,
+        ];
+    }
+
+    private function orderItemHasChanges(OrderItems $orderItem, array $attributes): bool
+    {
+        $current = [
+            'boq_item' => $orderItem->boq_item,
+            'resource_id' => (int) $orderItem->resource_id,
+            'site_id' => $orderItem->site_id === null ? null : (int) $orderItem->site_id,
+            'quantity' => (int) $orderItem->quantity,
+            'reason' => $orderItem->reason,
+            'priority' => $orderItem->priority?->value,
+            'delivery_date' => $orderItem->delivery_date,
+            'notes' => $orderItem->notes,
+        ];
+
+        return $current !== $attributes;
+    }
+
+    private function getLatestResourcePrice(Resource $resource): resourcePrice
+    {
+        $price = $resource->resourcePrices()
+            ->orderByDesc('effective_date')
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $price) {
+            throw new \RuntimeException(__('No price history found for resource #:resource_id', ['resource_id' => $resource->id]));
+        }
+
+        return $price;
+    }
+
+    private function getOrderItemResourceName(OrderItems $orderItem): string
+    {
+        $resource = $orderItem->resource;
+
+        return $resource?->getTranslation('name', app()->getLocale())
+            ?: $resource?->resource_code
+            ?: (string) $orderItem->id;
     }
 }
