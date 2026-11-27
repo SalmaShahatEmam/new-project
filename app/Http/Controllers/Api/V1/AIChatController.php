@@ -36,7 +36,7 @@ class AIChatController extends Controller
      */
     public function sendMessage(SendMessageRequest $request): JsonResponse
     {
-        try {
+    try {
             $user = $request->user();
             $validated = $request->validated();
 
@@ -76,7 +76,7 @@ class AIChatController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => __('The AI service encountered an error. Please try again later.'),
+                'message' => config('app.debug') ? $e->getMessage() : __('The AI service encountered an error. Please try again later.'),
                 'error_id' => $errorId,
             ], 500);
         }

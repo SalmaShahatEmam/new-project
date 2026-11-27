@@ -59,7 +59,7 @@ class AiChatService
                 'type' => 'text',
             ];
         }
-
+$this->assistantService->answer($message);
         // 5. Query AI Assistant Service
         try {
             $aiResponse = $this->assistantService->answer($message);

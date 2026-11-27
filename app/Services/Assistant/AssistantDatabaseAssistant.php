@@ -104,7 +104,6 @@ class AssistantDatabaseAssistant
             throw new RuntimeException('Assistant provider returned an empty answer.');
         }
 
-        dd($answer);
         return ['answer' => trim($answer), 'sources' => []];
     }
 
