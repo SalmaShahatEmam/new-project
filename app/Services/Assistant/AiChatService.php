@@ -63,6 +63,8 @@ $this->assistantService->answer($message);
         // 5. Query AI Assistant Service
         try {
             $aiResponse = $this->assistantService->answer($message);
+
+        
             $answer = $aiResponse['answer'] ?? '';
             $rawResults = $aiResponse['sources'] ?? [];
         } catch (Throwable $e) {

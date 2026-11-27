@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Services\Assistant\AssistantService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Schema\Blueprint;
@@ -22,6 +23,9 @@ class AssistantDatabaseQuestionsTest extends TestCase
             'services.assistant.api_key' => 'test-key',
             'services.assistant.model' => 'test-model',
             'services.assistant.base_url' => 'https://assistant.test/v1',
+            'services.gemini.api_key' => 'test-key',
+            'services.gemini.model' => 'test-model',
+            'services.gemini.base_url' => 'https://assistant.test/v1',
             'app.timezone' => 'UTC',
         ]);
         DB::purge('sqlite');
@@ -178,14 +182,19 @@ class AssistantDatabaseQuestionsTest extends TestCase
 
     public function test_code_questions_continue_to_use_source_retrieval(): void
     {
-        Http::fakeSequence('https://assistant.test/v1/chat/completions')
-            ->push(['choices' => [['message' => ['content' => 'يتم إنشاء المشروع في ProjectController.']]]]);
+        Http::fakeSequence('https://assistant.test/v1/models/test-model:generateContent?key=test-key')
+            ->push(['candidates' => [['content' => ['parts' => [['text' => 'يتم إنشاء المشروع في ProjectController.']]]]]]);
+        $user = new User();
+        $user->id = 1;
 
-        $result = app(AssistantService::class)->answer('فين كود إنشاء Project؟');
+        $result = app(AssistantService::class)->answer('فين كود إنشاء Project؟', $user);
 
         $this->assertSame('يتم إنشاء المشروع في ProjectController.', $result['answer']);
         $this->assertNotEmpty($result['sources']);
         $this->assertArrayHasKey('path', $result['sources'][0]);
+        Http::assertSent(fn ($request): bool => isset($request->data()['contents'][0]['parts'][0]['text'])
+            && count($request->data()['tools'][0]['function_declarations']) === 2
+            && $request->data()['contents'][0]['role'] === 'user');
     }
 
     public function test_unsupported_database_questions_are_not_answered_from_source_context(): void

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Enum\UserTypeEnum;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\Assistant\AssistantService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
@@ -16,16 +17,16 @@ class AssistantController extends Controller
 {
     public function ask(Request $request, AssistantService $assistant): JsonResponse
     {
-        if ($request->user()?->type !== UserTypeEnum::ADMIN) {
+        $user = $request->user();
+        if (! $user instanceof User || $user->type !== UserTypeEnum::ADMIN) {
             throw new AuthorizationException(__('Unauthorized'));
         }
 
         $validated = $request->validate([
             'question' => ['required', 'string', 'min:3', 'max:2000'],
         ]);
-//return response()->json($assistant->answer($validated['question']));
         try {
-            return response()->json($assistant->answer($validated['question']));
+            return response()->json($assistant->answer($validated['question'], $user));
         } catch (Throwable $exception) {
             $errorId = (string) Str::uuid();
             Log::channel('single')->error('Admin assistant request failed.', [

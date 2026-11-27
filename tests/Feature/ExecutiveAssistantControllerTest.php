@@ -5,12 +5,14 @@ namespace Tests\Feature;
 use App\Http\Middleware\APIKey;
 use App\Models\AiChatMessage;
 use App\Models\AiConversation;
+use App\Models\CombinedReport;
 use App\Models\Order;
 use App\Models\OrderItems;
 use App\Models\Project;
 use App\Models\ProjectEngineers;
 use App\Models\ProjectResources;
 use App\Models\Resource;
+use App\Models\resourcePrice;
 use App\Models\Site;
 use App\Models\SiteProblem;
 use App\Models\SiteReport;
@@ -56,12 +58,27 @@ class ExecutiveAssistantControllerTest extends TestCase
             $table->id();
             $table->string('name')->nullable();
             $table->string('email')->nullable();
+            $table->string('mobile')->nullable();
             $table->string('password')->nullable();
             $table->string('type')->default('admin');
             $table->string('status')->default('ACTIVE');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
+        });
+
+        Schema::create('roles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('guard_name')->default('api');
+            $table->timestamps();
+        });
+
+        Schema::create('model_has_roles', function (Blueprint $table): void {
+            $table->unsignedBigInteger('role_id');
+            $table->string('model_type');
+            $table->unsignedBigInteger('model_id');
+            $table->primary(['role_id', 'model_id', 'model_type']);
         });
 
         Schema::create('projects', function (Blueprint $table): void {
@@ -99,16 +116,28 @@ class ExecutiveAssistantControllerTest extends TestCase
         Schema::create('project_engineers', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('project_id');
-            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('engineer_id')->nullable();
             $table->string('type')->nullable();
             $table->boolean('active')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('combined_reports', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('site_id');
+            $table->date('from_date');
+            $table->date('to_date');
+            $table->string('name');
             $table->timestamps();
         });
 
         Schema::create('resources', function (Blueprint $table): void {
             $table->id();
             $table->json('name')->nullable();
+            $table->string('resource_code')->nullable();
             $table->string('code')->nullable();
+            $table->json('unit_of_measure')->nullable();
             $table->unsignedBigInteger('category_id')->nullable();
             $table->unsignedBigInteger('unit_id')->nullable();
             $table->boolean('status')->default(true);
@@ -121,6 +150,7 @@ class ExecutiveAssistantControllerTest extends TestCase
             $table->unsignedBigInteger('project_id');
             $table->unsignedBigInteger('resource_id');
             $table->decimal('quantity', 15, 2)->default(0);
+            $table->string('unit')->nullable();
             $table->decimal('price', 15, 2)->default(0);
             $table->decimal('tax', 5, 2)->default(0);
             $table->decimal('price_after_tax', 15, 2)->nullable();
@@ -374,40 +404,25 @@ class ExecutiveAssistantControllerTest extends TestCase
         ]);
 
         Http::fake([
-            'https://generativelanguage.googleapis.com/*' => Http::sequence()
-                // 1st request: Gemini decides to call get_project_executive_status
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    [
-                                        'functionCall' => [
-                                            'name' => 'get_project_executive_status',
-                                            'args' => [
-                                                'project_name' => 'Retal Rise Tower',
-                                            ],
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'get_project_executive_status',
+                                        'args' => [
+                                            'project_name' => 'Retal Rise Tower',
                                         ],
                                     ],
                                 ],
                             ],
                         ],
                     ],
-                ], 200)
-                // 2nd request: Gemini returns Arabic executive summary after receiving DB results
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    ['text' => "الموقف التنفيذي لمشروع برج رتال رايز:\n- الموقف العام: المشروع قيد التنفيذ والموعد النهائي مستقر.\n- ركائز التنفيذ: العمالة (35 عامل)، المعدات (2 مضخة)، المواد (50 طن حديد).\n- المعوقات: مشكلة حرجة مفتوحة تخص تصاريح الصب الليلي."],
-                                ],
-                            ],
-                        ],
-                    ],
-                ], 200),
+                ],
+            ], 200),
         ]);
 
         $response = $this->postJson('/api/executive-assistant/chat', [
@@ -421,7 +436,9 @@ class ExecutiveAssistantControllerTest extends TestCase
                 'toolExecuted' => 'get_project_executive_status',
             ]);
 
-        $this->assertStringContainsString('برج رتال رايز', $response->json('reply'));
+        $this->assertTrue($response->json('data.found'));
+        $this->assertSame('Retal Rise Tower', $response->json('data.project.name'));
+        $this->assertEquals(35, $response->json('data.pillars.labor.recent_items.0.labor_count'));
     }
 
     public function test_check_material_stock_and_quantities_tool(): void
@@ -430,6 +447,7 @@ class ExecutiveAssistantControllerTest extends TestCase
 
         $resource = Resource::create([
             'name' => ['ar' => 'حديد تسليح 16 مم', 'en' => 'Rebar 16mm'],
+            'resource_code' => 'STL-16',
             'code' => 'STL-16',
             'status' => true,
         ]);
@@ -449,39 +467,26 @@ class ExecutiveAssistantControllerTest extends TestCase
         ]);
 
         Http::fake([
-            'https://generativelanguage.googleapis.com/*' => Http::sequence()
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    [
-                                        'functionCall' => [
-                                            'name' => 'check_material_stock_and_quantities',
-                                            'args' => [
-                                                'material_name' => 'حديد تسليح',
-                                                'project_name' => 'Retal Corniche',
-                                            ],
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'check_material_stock_and_quantities',
+                                        'args' => [
+                                            'material_name' => 'حديد تسليح',
+                                            'project_name' => 'Retal Corniche',
                                         ],
                                     ],
                                 ],
                             ],
                         ],
                     ],
-                ], 200)
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    ['text' => 'الكمية المعتمدة لحديد تسليح 16 مم في مشروع Retal Corniche هي 120 طن بسعر 2800 ريال للطن.'],
-                                ],
-                            ],
-                        ],
-                    ],
-                ], 200),
+                ],
+            ], 200),
         ]);
 
         $response = $this->postJson('/api/executive-assistant/chat', [
@@ -494,6 +499,9 @@ class ExecutiveAssistantControllerTest extends TestCase
                 'success' => true,
                 'toolExecuted' => 'check_material_stock_and_quantities',
             ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $this->assertEquals(120, $response->json('data.materials.0.project_allocation.allocated_quantity'));
     }
 
     public function test_query_subcontractor_and_milestone_delays_tool(): void
@@ -507,38 +515,25 @@ class ExecutiveAssistantControllerTest extends TestCase
         ]);
 
         Http::fake([
-            'https://generativelanguage.googleapis.com/*' => Http::sequence()
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    [
-                                        'functionCall' => [
-                                            'name' => 'query_subcontractor_and_milestone_delays',
-                                            'args' => [
-                                                'supplier_name' => 'البناء المتقدم',
-                                            ],
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'query_subcontractor_and_milestone_delays',
+                                        'args' => [
+                                            'supplier_name' => 'البناء المتقدم',
                                         ],
                                     ],
                                 ],
                             ],
                         ],
                     ],
-                ], 200)
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    ['text' => 'مقاول الباطن شركة البناء المتقدم حالته نشط ولا توجد معوقات مسجلة بحقه.'],
-                                ],
-                            ],
-                        ],
-                    ],
-                ], 200),
+                ],
+            ], 200),
         ]);
 
         $response = $this->postJson('/api/executive-assistant/chat', [
@@ -551,6 +546,11 @@ class ExecutiveAssistantControllerTest extends TestCase
                 'success' => true,
                 'toolExecuted' => 'query_subcontractor_and_milestone_delays',
             ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $subcontractorName = $response->json('data.delay_and_contractor_status.subcontractors.0.name');
+        $resolvedName = is_array($subcontractorName) ? ($subcontractorName['ar'] ?? '') : $subcontractorName;
+        $this->assertSame('شركة البناء المتقدم للمقاولات', $resolvedName);
     }
 
     public function test_get_orders_and_approvals_status_tool(): void
@@ -572,38 +572,25 @@ class ExecutiveAssistantControllerTest extends TestCase
         ]);
 
         Http::fake([
-            'https://generativelanguage.googleapis.com/*' => Http::sequence()
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    [
-                                        'functionCall' => [
-                                            'name' => 'get_orders_and_approvals_status',
-                                            'args' => [
-                                                'order_number' => 'PO-2026-99',
-                                            ],
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'get_orders_and_approvals_status',
+                                        'args' => [
+                                            'order_number' => 'PO-2026-99',
                                         ],
                                     ],
                                 ],
                             ],
                         ],
                     ],
-                ], 200)
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    ['text' => 'أمر الشراء رقم PO-2026-99 حالته معلق (unapproved) لبند خلاطات خرسانة وبأولوية عاجلة.'],
-                                ],
-                            ],
-                        ],
-                    ],
-                ], 200),
+                ],
+            ], 200),
         ]);
 
         $response = $this->postJson('/api/executive-assistant/chat', [
@@ -616,6 +603,9 @@ class ExecutiveAssistantControllerTest extends TestCase
                 'success' => true,
                 'toolExecuted' => 'get_orders_and_approvals_status',
             ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $this->assertGreaterThanOrEqual(1, $response->json('data.pipeline_counts.unapproved'));
     }
 
     public function test_non_admin_engineer_is_scoped_to_assigned_projects(): void
@@ -627,38 +617,25 @@ class ExecutiveAssistantControllerTest extends TestCase
         ]);
 
         Http::fake([
-            'https://generativelanguage.googleapis.com/*' => Http::sequence()
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    [
-                                        'functionCall' => [
-                                            'name' => 'get_project_executive_status',
-                                            'args' => [
-                                                'project_name' => 'Confidential High Rise',
-                                            ],
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'get_project_executive_status',
+                                        'args' => [
+                                            'project_name' => 'Confidential High Rise',
                                         ],
                                     ],
                                 ],
                             ],
                         ],
                     ],
-                ], 200)
-                ->push([
-                    'candidates' => [
-                        [
-                            'content' => [
-                                'role' => 'model',
-                                'parts' => [
-                                    ['text' => 'عفواً، لم يتم العثور على المشروع أو ليس لديك صلاحية للاطلاع عليه.'],
-                                ],
-                            ],
-                        ],
-                    ],
-                ], 200),
+                ],
+            ], 200),
         ]);
 
         $response = $this->postJson('/api/executive-assistant/chat', [
@@ -667,7 +644,8 @@ class ExecutiveAssistantControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $this->assertStringContainsString('ليس لديك صلاحية', $response->json('reply'));
+        $this->assertFalse($response->json('result.found'));
+        $this->assertStringContainsString('ليس لديك صلاحية', $response->json('result.message'));
     }
 
     public function test_voice_assistant_alias_route_works(): void
@@ -720,5 +698,488 @@ class ExecutiveAssistantControllerTest extends TestCase
             ->assertJson([
                 'success' => false,
             ]);
+    }
+
+    public function test_count_projects_returns_exact_number_only(): void
+    {
+        $user = $this->createAdminUser();
+
+        for ($i = 1; $i <= 5; $i++) {
+            Project::create([
+                'name' => "Project {$i}",
+                'status' => 'in_progress',
+                'user_id' => $user->id,
+            ]);
+        }
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'count_projects',
+                                        'args' => [],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/executive-assistant/chat', [
+            'userId' => $user->id,
+            'message' => 'كم عدد المشاريع؟',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'toolExecuted' => 'count_projects',
+            ]);
+
+        $this->assertSame(5, $response->json('result.total_count'));
+        $this->assertCount(5, $response->json('result.projects'));
+        $this->assertNotNull($response->json('reply_html'));
+        $this->assertNotNull($response->json('reply_text'));
+        $this->assertStringContainsString('<', $response->json('reply_html'));
+    }
+
+    public function test_get_employees_and_staff_details_tool(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $engineer = User::create([
+            'name' => 'مهندس أحمد علي',
+            'email' => 'ahmed.ali@retal.com',
+            'mobile' => '0551234567',
+            'type' => 'engineer',
+            'is_active' => true,
+        ]);
+
+        $project = Project::create([
+            'name' => 'مشروع برج رتال الشمالي',
+            'status' => 'in_progress',
+        ]);
+
+        ProjectEngineers::create([
+            'project_id' => $project->id,
+            'engineer_id' => $engineer->id,
+            'type' => 'Structural',
+            'active' => true,
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'get_employees_and_staff_details',
+                                        'args' => [
+                                            'employee_name' => 'أحمد علي',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/executive-assistant/chat', [
+            'userId' => $admin->id,
+            'message' => 'من هو المهندس المسؤول عن المشروع وما هي بيانات أحمد علي؟',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'toolExecuted' => 'get_employees_and_staff_details',
+            ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $this->assertSame('مهندس أحمد علي', $response->json('data.employees.0.name'));
+        $this->assertSame('مشروع برج رتال الشمالي', $response->json('data.employees.0.assigned_projects.0.project_name'));
+    }
+
+    public function test_get_sites_and_locations_summary_tool(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $project = Project::create([
+            'name' => 'مشروع الواجهة البحرية',
+            'status' => 'in_progress',
+        ]);
+
+        $site = Site::create([
+            'project_id' => $project->id,
+            'name' => ['ar' => 'موقع الكورنيش الشمالي', 'en' => 'North Corniche Site'],
+            'status' => 'active',
+            'duration_in_months' => 18,
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'get_sites_and_locations_summary',
+                                        'args' => [
+                                            'project_id' => $project->id,
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/executive-assistant/chat', [
+            'userId' => $admin->id,
+            'message' => 'ما هي مواقع مشروع الواجهة البحرية؟',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'toolExecuted' => 'get_sites_and_locations_summary',
+            ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $this->assertSame(18, $response->json('data.sites.0.duration_in_months'));
+    }
+
+    public function test_get_combined_and_aggregated_reports_tool(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $project = Project::create(['name' => 'برج رتال الرياض']);
+        $site = Site::create([
+            'project_id' => $project->id,
+            'name' => ['ar' => 'موقع الرياض 1'],
+        ]);
+
+        CombinedReport::create([
+            'site_id' => $site->id,
+            'name' => 'تقرير شهر نوفمبر المجمع',
+            'from_date' => '2026-11-01',
+            'to_date' => '2026-11-30',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'get_combined_and_aggregated_reports',
+                                        'args' => [
+                                            'site_id' => $site->id,
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/executive-assistant/chat', [
+            'userId' => $admin->id,
+            'message' => 'عايز التقرير المجمع للموقع',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'toolExecuted' => 'get_combined_and_aggregated_reports',
+            ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $this->assertSame('تقرير شهر نوفمبر المجمع', $response->json('data.combined_reports.0.name'));
+    }
+
+    public function test_get_suppliers_and_procurement_details_tool(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $supplier = Supplier::create([
+            'name' => ['ar' => 'شركة الراجحي للحديد والصلب', 'en' => 'Al-Rajhi Steel'],
+            'contact' => '0509998877',
+            'email' => 'sales@alrajhi-steel.com',
+            'status' => 'active',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'get_suppliers_and_procurement_details',
+                                        'args' => [
+                                            'supplier_name' => 'الراجحي',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/executive-assistant/chat', [
+            'userId' => $admin->id,
+            'message' => 'ما هي بيانات مورد الحديد الراجحي؟',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'toolExecuted' => 'get_suppliers_and_procurement_details',
+            ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $this->assertSame('0509998877', $response->json('data.suppliers.0.contact'));
+    }
+
+    public function test_get_resource_prices_and_market_rates_tool(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $resource = Resource::create([
+            'name' => ['ar' => 'أسمنت مقاوم للأملاح', 'en' => 'SRC Cement'],
+            'resource_code' => 'CEM-SRC',
+            'status' => true,
+        ]);
+
+        resourcePrice::create([
+            'resource_id' => $resource->id,
+            'price' => 28.50,
+            'tax_value' => '15',
+            'effective_date' => '2026-11-15',
+            'currency' => 'SAR',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'role' => 'model',
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'get_resource_prices_and_market_rates',
+                                        'args' => [
+                                            'material_name' => 'أسمنت',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/executive-assistant/chat', [
+            'userId' => $admin->id,
+            'message' => 'عايز أعرف متوسط وتاريخ أسعار الأسمنت',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'toolExecuted' => 'get_resource_prices_and_market_rates',
+            ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $this->assertEquals(28.5, $response->json('data.price_range.avg_price'));
+    }
+
+    public function test_global_contextual_search_material_and_unit_ton_steel(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $project = Project::create([
+            'name' => 'مشروع برج رتال',
+            'status' => 'in_progress',
+        ]);
+
+        $supplier = Supplier::create([
+            'name' => ['ar' => 'شركة الراجحي للصلب', 'en' => 'Al-Rajhi Steel'],
+            'contact' => '0501112233',
+        ]);
+
+        $resource = Resource::create([
+            'name' => ['ar' => 'حديد تسليح 16 مم', 'en' => 'Rebar Steel 16mm'],
+            'resource_code' => 'R-STEEL-16',
+            'unit_of_measure' => ['ar' => 'طن', 'en' => 'Ton'],
+        ]);
+
+        resourcePrice::create([
+            'resource_id' => $resource->id,
+            'supplier_id' => $supplier->id,
+            'price' => 3200,
+            'tax_value' => 480,
+            'price_after_tax' => 3680,
+            'effective_date' => now()->toDateString(),
+            'is_current' => true,
+        ]);
+
+        ProjectResources::create([
+            'project_id' => $project->id,
+            'resource_id' => $resource->id,
+            'quantity' => 50,
+            'unit' => 'طن',
+            'price' => 3200,
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'global_contextual_search',
+                                        'args' => [
+                                            'query' => 'طن حديد',
+                                            'intent' => 'material_search',
+                                            'keywords' => ['حديد', 'تسليح'],
+                                            'material_name' => 'حديد',
+                                            'unit' => 'طن',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/executive-assistant/chat', [
+            'userId' => $admin->id,
+            'message' => 'طن حديد',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'toolExecuted' => 'global_contextual_search',
+            ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $this->assertNotEmpty($response->json('data.matched_materials'));
+        $this->assertSame(50.0, (float) $response->json('data.matched_materials.0.total_stock_in_projects'));
+        $this->assertNotNull($response->json('reply_html'));
+        $this->assertStringContainsString('حديد', $response->json('reply_html'));
+    }
+
+    public function test_global_contextual_search_person_ahmed(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $engineer = User::create([
+            'name' => 'أحمد علي',
+            'email' => 'ahmed.engineer@retal.com',
+            'mobile' => '0559998888',
+            'type' => 'engineer',
+        ]);
+
+        $project = Project::create([
+            'name' => 'مشروع أبواحمد الأحساء',
+            'status' => 'in_progress',
+        ]);
+
+        ProjectEngineers::create([
+            'project_id' => $project->id,
+            'engineer_id' => $engineer->id,
+            'user_id' => $engineer->id,
+            'active' => true,
+        ]);
+
+        $site = Site::create([
+            'name' => 'موقع A1',
+            'project_id' => $project->id,
+            'status' => 'active',
+        ]);
+
+        DB::table('site_user')->insert([
+            'site_id' => $site->id,
+            'user_id' => $engineer->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                [
+                                    'functionCall' => [
+                                        'name' => 'global_contextual_search',
+                                        'args' => [
+                                            'query' => 'بحث باسم احمد',
+                                            'intent' => 'person_search',
+                                            'person_name' => 'احمد',
+                                            'keywords' => ['احمد', 'أحمد'],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/executive-assistant/chat', [
+            'userId' => $admin->id,
+            'message' => 'بحث باسم احمد',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'toolExecuted' => 'global_contextual_search',
+            ]);
+
+        $this->assertTrue($response->json('data.found'));
+        $this->assertNotEmpty($response->json('data.matched_people'));
+        $this->assertSame('أحمد علي', $response->json('data.matched_people.0.name'));
+        $this->assertSame(1, $response->json('data.matched_people.0.assigned_projects_count'));
+        $this->assertSame(1, $response->json('data.matched_people.0.supervised_sites_count'));
+        $this->assertNotNull($response->json('reply_html'));
+        $this->assertStringContainsString('أحمد علي', $response->json('reply_html'));
     }
 }

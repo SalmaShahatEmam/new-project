@@ -105,10 +105,10 @@ class AIChatControllerTest extends TestCase
     {
         $user = $this->createUser();
 
-        $this->mock(AssistantService::class, function (MockInterface $mock) {
+        $this->mock(AssistantService::class, function (MockInterface $mock) use ($user) {
             $mock->shouldReceive('answer')
                 ->once()
-                ->with('What is the latest price of cement?')
+                ->with('What is the latest price of cement?', $user)
                 ->andReturn([
                     'answer' => 'The latest price of cement is 25 SAR.',
                     'sources' => ['material' => 'cement'],
@@ -158,10 +158,10 @@ class AIChatControllerTest extends TestCase
             'title' => 'Material Inquiries',
         ]);
 
-        $this->mock(AssistantService::class, function (MockInterface $mock) {
+        $this->mock(AssistantService::class, function (MockInterface $mock) use ($user) {
             $mock->shouldReceive('answer')
                 ->once()
-                ->with('And what about sand?')
+                ->with('And what about sand?', $user)
                 ->andReturn([
                     'answer' => 'Sand is 15 SAR per cubic meter.',
                     'sources' => [],
@@ -497,8 +497,9 @@ class AIChatControllerTest extends TestCase
     {
         $user = $this->createUser();
 
-        $this->mock(AssistantService::class, function (MockInterface $mock) {
+        $this->mock(AssistantService::class, function (MockInterface $mock) use ($user) {
             $mock->shouldReceive('answer')
+                ->with('Any question', $user)
                 ->andThrow(new \RuntimeException('Connection to Groq API timed out.'));
         });
 

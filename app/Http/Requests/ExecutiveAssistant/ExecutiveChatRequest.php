@@ -3,6 +3,7 @@
 namespace App\Http\Requests\ExecutiveAssistant;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Override;
 
 class ExecutiveChatRequest extends FormRequest
 {
@@ -14,6 +15,7 @@ class ExecutiveChatRequest extends FormRequest
         return true;
     }
 
+  
     /**
      * Get the validation rules that apply to the request.
      *

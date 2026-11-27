@@ -57,10 +57,18 @@ class ExecutiveAssistantController extends Controller
                 conversationId: $request->input('conversation_id')
             );
 
+            $reply = $result['reply'] ?? (is_scalar($result['result'] ?? null) ? (string) ($result['result']) : null);
+            $replyText = $reply !== null ? trim(preg_replace('/\s+/', ' ', strip_tags($reply))) : null;
+
             return response()->json([
                 'success' => true,
-                'reply' => $result['reply'],
-                'toolExecuted' => $result['toolExecuted'],
+                'result' => $result['result'] ?? $result['data'] ?? null,
+                'data' => $result['data'] ?? $result['result'] ?? null,
+                'reply' => $reply,
+                'reply_html' => $reply,
+                'reply_text' => $replyText,
+                'toolExecuted' => $result['toolExecuted'] ?? null,
+                'toolArgs' => $result['toolArgs'] ?? null,
                 'conversation_id' => $result['conversation_id'],
             ], 200);
 

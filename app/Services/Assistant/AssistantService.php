@@ -48,8 +48,7 @@ class AssistantService
         $response = Http::withToken($apiKey)
             ->acceptJson()
             ->timeout((int) config('services.assistant.timeout', 45))
-            ->post(rtrim(config('services.assistant.base_url'), '/') . '/chat/completions', [
-                'model' => $model,
+            ->post(rtrim(config('services.assistant.base_url'), '/') .$model .':generateContent', [
                 'messages' => [
                     [
                         'role' => 'system',

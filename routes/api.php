@@ -16,6 +16,7 @@ Route::post('voice-assistant/chat', [ExecutiveAssistantController::class, 'chat'
 Route::post('v1/executive-assistant/chat', [ExecutiveAssistantController::class, 'chat']);
 
 Route::middleware(['auth:api'])->prefix('v1/ai/chat')->group(function () {
+    Route::post('/', [AIChatController::class, 'sendMessage']);
     Route::post('sendmessage', [AIChatController::class, 'sendMessage']);
     Route::post('conversations', [AIChatController::class, 'createConversation']);
     Route::get('conversations', [AIChatController::class, 'listConversations']);

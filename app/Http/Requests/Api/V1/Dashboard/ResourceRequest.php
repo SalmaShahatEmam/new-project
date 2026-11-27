@@ -20,10 +20,10 @@ class ResourceRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            "name.en" => "required|string|max:255",
-            "name.ar" => "required|string|max:255",
-            "description.en" => "nullable|string|max:255",
-            "description.ar" => "nullable|string|max:255",
+            "name.en" => "required|string|max:1000",
+            "name.ar" => "required|string|max:1000",
+            "description.en" => "nullable|string|max:1000",
+            "description.ar" => "nullable|string|max:1000",
             "category_id" => "required|exists:categories,id",
          #   "unit_of_measure.en" => "required|string|max:255",
            # "unit_of_measure.ar" => "required|string|max:255",

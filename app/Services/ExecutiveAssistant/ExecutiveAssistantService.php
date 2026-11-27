@@ -14,19 +14,35 @@ use Throwable;
 
 class ExecutiveAssistantService
 {
-    public const SYSTEM_INSTRUCTION = <<<EOT
+    /**
+     * Build system instruction dynamically to inject today's date.
+     */
+    public static function buildSystemInstruction(): string
+    {
+        $today     = now()->translatedFormat('l، d F Y');
+        $todayIso  = now()->toDateString(); // YYYY-MM-DD
+
+        return <<<EOT
 أنت "المساعد الذكي لإدارة المشاريع" في منظومة رتال للتطوير العمراني (Retal System).
 مهمتك الأساسية هي مساعدة مديري المشاريع والمهندسين التنفيذيين بالإجابة على استفساراتهم وتلخيص المواقف الميدانية استناداً إلى البيانات الحقيقية فقط.
 
+📅 تاريخ اليوم: {$today} ({$todayIso})
+عندما يقول المستخدم "اليوم" أو "تقارير اليوم" أو "الموقف اليوم"، استخدم تاريخ اليوم ({$todayIso}) تلقائياً كمعامل date عند استدعاء الأدوات.
+
 القواعد الصارمة للرد:
 1. اللغة والأسلوب: تحدث باللغة العربية الفصحى المعاصرة، بأسلوب تنفيذي موجز، مباشر، وخالٍ من الإنشاء والعبارات الترحيبية المفرطة.
-2. استخدام الأدوات (Tools): عندما يسأل المستخدم عن مشروع، مواد، مقاولين، معدات، أو أرقام، استدعِ الدالة المناسبة فوراً دون تخمين أي رقم من عندك.
-3. الأمانة في البيانات: اعتمد كلياً على البيانات المرجعة من قاعدة البيانات. إذا كان هناك نقص في البيانات أو لم تجد سجلاً، اذكر ذلك للمستخدم بوضوح ومهنية.
-4. هيكل الرد التنفيذي:
+2. استخدام الأدوات (Tools): عندما يسأل المستخدم عن مشروع، مواد، مقاولين، معدات، تقارير، أو أرقام، استدعِ الدالة المناسبة فوراً دون تخمين أي رقم من عندك.
+3. التقارير اليومية: عند أي سؤال عن "تقارير اليوم" أو "الموقف اليومي" أو "ماذا حدث اليوم"، استدعِ أداة `get_daily_field_reports` مع تمرير date={$todayIso}.
+4. الأمانة في البيانات: اعتمد كلياً على البيانات المرجعة من قاعدة البيانات. إذا كان هناك نقص في البيانات أو لم تجد سجلاً، اذكر ذلك للمستخدم بوضوح ومهنية.
+5. هيكل الرد التنفيذي:
    - ملخص الموقف العام (نسبة الإنجاز والحالة).
    - البنود الحرجة والمعوقات (إن وجدت) في (المواد، المعدات، العمالة، المقاولين).
    - التوصيات التنفيذية المقترحة.
+6. البحث الدلالي والشامل بالسياق (Omnisearch): عندما يطلب المستخدم البحث في كامل النظام أو الداتابيز (مثل 'طن حديد' أو 'بحث باسم احمد' أو 'ابحث في الداتابيز عن...'):
+   - استدعِ أداة `global_contextual_search` فوراً دون تردد.
+   - استخرج النية (intent)، الكلمات المفتاحية، اسم الشخص أو المادة، ووحدة القياس (مثل 'طن' كوحدة و'حديد' كمادة).
 EOT;
+    }
 
     public function __construct(
         protected GeminiClientService $geminiClient,
@@ -63,7 +79,7 @@ EOT;
 
         // 3. Security check: prohibit mutations
         if ($this->isForbiddenMutation($message)) {
-            $reply = 'المساعد الذكي مخصص للاستعلام وتلخيص المواقف التنفيذية فقط، ولا يملك صلاحية إنشاء البيانات أو تعديلها أو حذفها.';
+            $reply = '<p>⚠️ <strong>تنبيه:</strong> المساعد الذكي مخصص للاستعلام وتلخيص المواقف التنفيذية فقط، ولا يملك صلاحية إنشاء البيانات أو تعديلها أو حذفها.</p>';
             
             $conversation->messages()->create([
                 'role' => 'assistant',
@@ -94,7 +110,7 @@ EOT;
         try {
             $initialResponse = $this->geminiClient->generateContent(
                 contents: $initialContents,
-                systemInstruction: self::SYSTEM_INSTRUCTION,
+                systemInstruction: self::buildSystemInstruction(),
                 tools: $tools
             );
         } catch (Throwable $e) {
@@ -111,78 +127,18 @@ EOT;
         if ($functionCall !== null) {
             $toolName = $functionCall['name'];
             $toolArgs = $functionCall['args'];
-            $callId = $functionCall['id'] ?? null;
 
             // Execute the tool safely against the local database
             $toolResult = $this->executeTool($user, $toolName, $toolArgs);
 
-            // Turn 2: Echo model turn including thoughtSignature & functionCall
-            $modelTurn = data_get($initialResponse, 'candidates.0.content', [
-                'role' => 'model',
-                'parts' => [
-                    [
-                        'functionCall' => [
-                            'name' => $toolName,
-                            'args' => (object) $toolArgs,
-                        ],
-                    ],
-                ],
-            ]);
+            // Synthesize database result into human-friendly, professional executive Arabic text
+            $reply = $this->synthesizeResponse($message, $toolResult, $toolName);
 
-            // Turn 3: Function response turn (role is 'user' for Gemini REST API v1beta)
-            $funcResponse = [
-                'name' => $toolName,
-                'response' => [
-                    'name' => $toolName,
-                    'content' => $toolResult,
-                ],
-            ];
-            if ($callId) {
-                $funcResponse['id'] = $callId;
-            }
-
-            $followUpContents = [
-                [
-                    'role' => 'user',
-                    'parts' => [
-                        ['text' => $message],
-                    ],
-                ],
-                $modelTurn,
-                [
-                    'role' => 'user',
-                    'parts' => [
-                        [
-                            'functionResponse' => $funcResponse,
-                        ],
-                    ],
-                ],
-            ];
-
-            try {
-                $finalResponse = $this->geminiClient->generateContent(
-                    contents: $followUpContents,
-                    systemInstruction: self::SYSTEM_INSTRUCTION,
-                    tools: $tools
-                );
-
-                $finalReply = $this->geminiClient->extractText($finalResponse);
-                if ($finalReply === '') {
-                    $finalReply = 'تم استرداد البيانات من النظام بنجاح.';
-                }
-            } catch (Throwable $e) {
-                Log::error('Gemini tool response interpretation error', [
-                    'error' => $e->getMessage(),
-                    'tool' => $toolName,
-                ]);
-                $finalReply = 'تم تنفيذ الاستعلام، ولكن حدث خطأ في صياغة التلخيص التنفيذي: ' . json_encode($toolResult, JSON_UNESCAPED_UNICODE);
-            }
-
-            // Persist assistant message with structured data
+            // Persist assistant message with natural text & structured data
             $conversation->messages()->create([
                 'role' => 'assistant',
-                'content' => $finalReply,
-                'structured_data' => $toolResult,
+                'content' => $reply,
+                'structured_data' => is_array($toolResult) ? $toolResult : ['result' => $toolResult],
                 'metadata' => [
                     'tool_executed' => $toolName,
                     'tool_args' => $toolArgs,
@@ -192,8 +148,11 @@ EOT;
 
             return [
                 'success' => true,
-                'reply' => $finalReply,
+                'reply' => $reply,
                 'toolExecuted' => $toolName,
+                'toolArgs' => $toolArgs,
+                'result' => $toolResult,
+                'data' => $toolResult,
                 'conversation_id' => $conversation->id,
             ];
         }
@@ -213,6 +172,7 @@ EOT;
 
         return [
             'success' => true,
+            'result' => $directReply,
             'reply' => $directReply,
             'toolExecuted' => null,
             'conversation_id' => $conversation->id,
@@ -220,15 +180,183 @@ EOT;
     }
 
     /**
+     * Synthesize database tool result into human-friendly, professional executive Arabic text.
+     */
+    protected function synthesizeResponse(string $question, mixed $toolResult, string $toolName): string
+    {
+        $systemInstruction = <<<EOT
+أنت "المساعد الذكي لإدارة المشاريع" في منظومة رتال للتطوير العمراني (Retal System).
+مهمتك الأساسية هي مساعدة العميل ومديري المشاريع بإعادة صياغة البيانات المسترجعة من قاعدة البيانات إلى تقرير تنفيذي وإجابة واضحة، مهنية، مفصلة وشاملة باللغة العربية ومنسقة بشكل جذاب ومفهوم للفرونت إند (Frontend).
+
+القواعد الصارمة لصياغة وتنسيق الرد:
+1. التنسيق بهيكل HTML نظيف للواجهات:
+   - قم بصياغة الإجابة بالكامل باستخدام وسوم HTML نقية وتعبيرية جاهزة للعرض المباشر في واجهات وتطبيقات الفرونت إند (Frontend UI).
+   - استخدم الوسوم التالية: <p>, <strong>, <span>, <ul>, <ol>, <li>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <br>, <code>.
+   - نسق القوائم والتفاصيل باستخدام <ol> أو <ul> مع <li>، واستخدم <strong> لتوضيح العناوين والأسماء والتكاليف، و <span> لتوضيح الحالات وتواريخ البدء والتسليم.
+   - لا تضع أبداً وسوم المستند الكامل مثل <html> أو <head> أو <body> أو <!DOCTYPE> أو <style>.
+   - لا تغلف الرد إطلاقاً بعلامات كود الماركداون (ممنوع استخدام ```html أو ```). يجب أن يكون الرد نص HTML مباشراً ونظيفاً.
+2. الشمول والتفصيل الدائم:
+   - لا تكتفِ أبداً بذكر رقم مجرد أو جملة مقتضبة.
+   - إذا كانت البيانات تحتوي على قائمة مشاريع أو مواد أو مقاولين أو أسعار، اعرض التفاصيل المتاحة كاملة (أسماء المشاريع، الحالات، تاريخ البدء، موعد التسليم/الانتهاء، المهندسين المسؤولين، التكلفة، والكميات) في نقاط منسقة ومنظمة ومرقمة.
+3. الدقة والأمانة: اعتمد حصراً على بيانات قاعدة البيانات المعطاة لك. لا تخترع أي معلومة أو تاريخ أو اسم من عندك.
+4. الربط الميداني: اذكر دائماً التفاصيل المرتبطة (مثل المشروع التابع له الخامة، أو المهندسين المسؤولين عن المشروع، أو حالة أوامر التوريد والتكلفة).
+5. تجنب المصطلحات البرمجية: لا تذكر كلمات مثل JSON أو null أو أسماء الجداول التقنية.
+EOT;
+
+        $prompt = "سؤال المستخدم:\n{$question}\n\nبيانات قاعدة البيانات المسترجعة:\n" . json_encode($toolResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\nالمطلوب: أعد صياغة هذه البيانات في رد تنفيذي مفصل وشامل وسلس منسق بوسوم HTML المناسبة للفرونت إند يوضح كافة التفاصيل المتاحة للعميل (الأسماء، الحالات، التواريخ، المهندسين، والتكاليف) دون اختصار مخل.";
+
+        try {
+            $response = $this->geminiClient->generateContent(
+                contents: [
+                    [
+                        'role' => 'user',
+                        'parts' => [
+                            ['text' => $prompt],
+                        ],
+                    ],
+                ],
+                systemInstruction: $systemInstruction,
+                tools: null
+            );
+
+            $reply = $this->geminiClient->extractText($response);
+
+            if (!empty($reply)) {
+                // Strip markdown code fences if generated
+                $reply = preg_replace('/^```(?:html)?\s*/i', '', $reply);
+                $reply = preg_replace('/\s*```$/', '', $reply);
+                $reply = trim($reply);
+
+                return $reply;
+            }
+        } catch (Throwable $e) {
+            Log::warning('Failed to synthesize assistant response via Gemini', [
+                'error' => $e->getMessage(),
+                'tool' => $toolName,
+            ]);
+        }
+
+        // Fallback for projects list if Gemini synthesis is unavailable
+        if (isset($toolResult['projects']) && is_array($toolResult['projects'])) {
+            $total = $toolResult['total_count'] ?? count($toolResult['projects']);
+            $html = "<p>يبلغ إجمالي المشاريع المسجلة <strong>{$total} مشاريع</strong>، وإليك تفاصيلها المتاحة في المنظومة:</p>";
+            $html .= "<ol>";
+            foreach ($toolResult['projects'] as $p) {
+                $pName = htmlspecialchars($p['name'] ?? 'مشروع بدون اسم');
+                $pStatus = htmlspecialchars($p['status'] ?? 'غير محدد');
+                $pStart = !empty($p['start_date']) ? " | <strong>تاريخ البدء:</strong> {$p['start_date']}" : "";
+                $pEnd = !empty($p['end_date']) ? " | <strong>تاريخ التسليم:</strong> {$p['end_date']}" : "";
+                $engineersList = '';
+                if (!empty($p['engineers']) && is_array($p['engineers'])) {
+                    $engNames = array_filter(array_column($p['engineers'], 'name'));
+                    if (!empty($engNames)) {
+                        $engineersList = " | <strong>المهندسون:</strong> " . htmlspecialchars(implode('، ', $engNames));
+                    }
+                }
+                $cost = !empty($p['total_cost']) ? " | <strong>التكلفة:</strong> " . number_format((float) $p['total_cost'], 2) . " ر.س" : "";
+                $html .= "<li><strong>{$pName}</strong> (<span>الحالة: {$pStatus}</span>){$pStart}{$pEnd}{$engineersList}{$cost}</li>";
+            }
+            $html .= "</ol>";
+            return $html;
+        }
+
+        // Fallback for global contextual search if Gemini synthesis is unavailable
+        if ($toolName === 'global_contextual_search' && is_array($toolResult)) {
+            return $this->formatGlobalSearchFallbackHtml($toolResult);
+        }
+
+        if (is_scalar($toolResult)) {
+            return "<p><strong>النتيجة:</strong> " . htmlspecialchars((string) $toolResult) . "</p>";
+        }
+
+        return '<p>تم استرداد بيانات الاستعلام بنجاح من النظام.</p>';
+    }
+
+    /**
+     * Fallback HTML formatting for global contextual omnisearch results.
+     */
+    protected function formatGlobalSearchFallbackHtml(array $res): string
+    {
+        $q = htmlspecialchars($res['query'] ?? 'البحث');
+        $html = "<p>نتائج البحث الشامل في المنظومة عن: <strong>{$q}</strong></p>";
+
+        if (!empty($res['matched_people'])) {
+            $html .= "<p><strong>👤 الأشخاص والمهندسون المرتبطون:</strong></p><ol>";
+            foreach ($res['matched_people'] as $p) {
+                $name = htmlspecialchars($p['name'] ?? 'مستخدم');
+                $role = htmlspecialchars($p['role'] ?? 'موظف');
+                $pCount = $p['assigned_projects_count'] ?? 0;
+                $sCount = $p['supervised_sites_count'] ?? 0;
+                $html .= "<li><strong>{$name}</strong> (<span>{$role}</span>) | <strong>المشاريع:</strong> {$pCount} مشروع | <strong>المواقع:</strong> {$sCount} موقع</li>";
+            }
+            $html .= "</ol>";
+        }
+
+        if (!empty($res['matched_materials'])) {
+            $html .= "<p><strong>📦 المواد والمخزون والأسعار:</strong></p><ol>";
+            foreach ($res['matched_materials'] as $m) {
+                $name = htmlspecialchars($m['name'] ?? 'مادة');
+                $code = htmlspecialchars($m['resource_code'] ?? '');
+                $unit = htmlspecialchars($m['unit'] ?? '');
+                $priceInfo = '';
+                if (!empty($m['latest_price'])) {
+                    $priceVal = number_format((float) ($m['latest_price']['price'] ?? 0), 2);
+                    $supplier = htmlspecialchars($m['latest_price']['supplier'] ?? '');
+                    $priceInfo = " | <strong>السعر الحالي:</strong> {$priceVal} ر.س / {$unit} (المورد: {$supplier})";
+                }
+                $stock = $m['total_stock_in_projects'] ?? 0;
+                $html .= "<li><strong>{$name}</strong> [<code>{$code}</code>]{$priceInfo} | <strong>الرصيد المتاح بالمشاريع:</strong> {$stock} {$unit}</li>";
+            }
+            $html .= "</ol>";
+        }
+
+        if (!empty($res['matched_projects'])) {
+            $html .= "<p><strong>🏗️ المشاريع المرتبطة:</strong></p><ol>";
+            foreach ($res['matched_projects'] as $prj) {
+                $pName = htmlspecialchars($prj['name'] ?? 'مشروع');
+                $status = htmlspecialchars($prj['status'] ?? 'غير محدد');
+                $html .= "<li><strong>{$pName}</strong> (<span>الحالة: {$status}</span>)</li>";
+            }
+            $html .= "</ol>";
+        }
+
+        if (!empty($res['matched_orders'])) {
+            $html .= "<p><strong>📑 أوامر التوريد والشراء:</strong></p><ol>";
+            foreach ($res['matched_orders'] as $ord) {
+                $num = htmlspecialchars($ord['order_number'] ?? '');
+                $mat = htmlspecialchars($ord['material_name'] ?? '');
+                $qty = $ord['quantity'] ?? 0;
+                $status = htmlspecialchars($ord['status'] ?? '');
+                $html .= "<li><strong>طلب {$num}:</strong> {$mat} (الكمية: {$qty}) | <span>الحالة: {$status}</span></li>";
+            }
+            $html .= "</ol>";
+        }
+
+        if (empty($res['matched_people']) && empty($res['matched_materials']) && empty($res['matched_projects']) && empty($res['matched_orders'])) {
+            $html .= "<p>لم يتم العثور على سجلات تطابق استعلام البحث في قاعدة البيانات.</p>";
+        }
+
+        return $html;
+    }
+
+    /**
      * Dispatch tool call to query service.
      */
-    protected function executeTool(User $user, string $toolName, array $args): array
+    protected function executeTool(User $user, string $toolName, array $args): mixed
     {
         return match ($toolName) {
+            'get_daily_field_reports' => $this->queryService->getDailyFieldReports($user, $args),
+            'count_projects' => $this->queryService->countProjects($user, $args),
             'get_project_executive_status' => $this->queryService->getProjectExecutiveStatus($user, $args),
             'check_material_stock_and_quantities' => $this->queryService->checkMaterialStockAndQuantities($user, $args),
             'query_subcontractor_and_milestone_delays' => $this->queryService->querySubcontractorAndMilestoneDelays($user, $args),
             'get_orders_and_approvals_status' => $this->queryService->getOrdersAndApprovalsStatus($user, $args),
+            'get_employees_and_staff_details' => $this->queryService->getEmployeesAndStaffDetails($user, $args),
+            'get_sites_and_locations_summary' => $this->queryService->getSitesAndLocationsSummary($user, $args),
+            'get_combined_and_aggregated_reports' => $this->queryService->getCombinedAndAggregatedReports($user, $args),
+            'get_suppliers_and_procurement_details' => $this->queryService->getSuppliersAndProcurementDetails($user, $args),
+            'get_resource_prices_and_market_rates' => $this->queryService->getResourcePricesAndMarketRates($user, $args),
+            'global_contextual_search' => $this->queryService->globalContextualSearch($user, $args),
             default => [
                 'found' => false,
                 'message' => "الأداة '{$toolName}' غير مدعومة في النظام.",
